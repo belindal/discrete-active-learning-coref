@@ -1,5 +1,4 @@
-# active-learning-coref
-Active learning for coreference resolution
+# Active learning for coreference resolution using discrete annotation
 
 ### Setup
 
