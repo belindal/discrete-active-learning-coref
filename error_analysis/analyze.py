@@ -169,8 +169,13 @@ if __name__ == "__main__":
             model_dicts[model_dir][x] = get_stats(fn)
 
     plot_stats(model_dicts,
-               out_fn / "ent_micro.png",
-               "Annotation time [mins / doc]", "Entity extraction [micro f1]",
+               out_fn / "mention_macro.png",
+               "Annotation time [mins / doc]", "Mention detection [macro f1]",
+               "ent_macro", "f1")
+
+    plot_stats(model_dicts,
+               out_fn / "mention_micro.png",
+               "Annotation time [mins / doc]", "Mention detection [micro f1]",
                "ent_micro", "f1")
 
     # End
