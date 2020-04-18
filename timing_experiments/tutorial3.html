@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <body>
+      <hr>
+      <h3>Tutorial Example</h3>
+      <div id="tutorial">
+      <hr>
+      <p>Finally, there may be instances where the yellow entity itself <em>is</em> the first, or only appearance of the entity in the passage, or is an invalid entity. (See examples below):</p>
+      <p>Yellow entity is first appearance of entity in passage:</p>
+      <blockquote id="text">
+        The legal pressures facing
+        <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]Michael Cohen]</font>
+        are growing in a wide-ranging investigation of <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font>
+        personal business affairs and <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font>
+        work on behalf of <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font>
+        former client, <font color="black" style="background:yellow;border:solid thick black;">President Trump</font>.
+        In addition to
+        <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font> work for Mr. Trump,
+        <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]he]</font>
+        pursued <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font>
+        own business interests, including ventures in real estate, personal loans and investments in taxi medallions.
+      </blockquote>
+      <p>Yellow entity is only appearance of entity in passage:</p>
+      <blockquote id="text">
+        The legal pressures facing
+        <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]Michael Cohen]</font>
+        are growing in a wide-ranging investigation of <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font>
+        personal business affairs and <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font>
+        work on behalf of <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font>
+        former client, President Trump.
+        In addition to
+        <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font> work for Mr. Trump,
+        <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]he]</font>
+        pursued <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font>
+        own business interests, including ventures in real estate, personal loans and investments in <font color="black" style="background:yellow;border:solid thick black;">taxi medallions</font>.
+      </blockquote>
+      <p>Yellow entity is invalid (doesn't refer to anything):</p>
+      <blockquote id="text">
+        The legal pressures facing
+        <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]Michael Cohen]</font>
+        are growing in a <font color="black" style="background:yellow;border:solid thick black;">wide-ranging</font> investigation of <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font>
+        personal business affairs and <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font>
+        work on behalf of <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font>
+        former client, President Trump.
+        In addition to
+        <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font> work for Mr. Trump,
+        <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]he]</font>
+        pursued <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font>
+        own business interests, including ventures in real estate, personal loans and investments in taxi medallions.
+      </blockquote>
+      <p>In these cases, you would just click 'submit' without selecting anything.</p>
+    </div>
+
+    <div id="tutorial">
+      <hr>
+      <p>Thanks for your participation! If you still have questions, please message me <em>before</em> you start this experiment.</p>
+      <p>Press 'START' when you are ready.</p>
+      <input type='button' id='Start' name='Start' value='Start' onclick="location.href = 'index.html';">
+    </div>
+    <br>
+    <a href="tutorial2.html">Go Back.</a>
+  </body>
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script type="text/javascript" src="formatted_predictions/predictions_20.js"></script>
+</html>

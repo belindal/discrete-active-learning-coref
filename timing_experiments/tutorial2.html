@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+  <body>
+      <hr>
+      <h3>Tutorial Example</h3>
+      <div id="tutorial">
+        <hr>
+        <blockquote id="text">
+          The legal pressures facing
+          <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]Michael Cohen]</font>
+          are growing in a wide-ranging investigation of <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font>
+          personal business affairs and <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font>
+          work on behalf of <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font>
+          former client, President Trump.
+          In addition to
+          <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font> work for
+          <font color="black" style="background:lightblue;border:solid thick blue;">Mr. Trump</font>,
+          <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]<font color="black" style="background:yellow;border:solid thick black;">he</font>]</font>
+          pursued <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font>
+          own business interests, including ventures in real estate, personal loans and investments in taxi medallions.
+        </blockquote>
+        <p>In this case, since the boxed spans are not coreferent, you would click 'no'.</p>
+        <h3>Are the boxed examples coreferent?: </h3>
+        <p id="pairwise_prompt_no"><input type="button" id="Yes" name="pair" value="Yes"> / <input type="button" id="No" name="pair" value="No" onclick="no_tutorial()"></p>
+        <p>Once you click no, you will be asked to select the <b>first</b> coreferent span to the yellow entity in the text.
+          Thus, in this case, you should select "Michael Cohen", rather than any of the other "his" pronouns, because it is the first appearance of that entity in the text.</p>
+        <p>Also, please make sure to select a <b>continuous</b> chunk of text.</p>
+        <p>You can select a word by clicking on it, and deselect a selected word by clicking again. Once you are finished with selection, click the 'submit' button to continue.</p>
+        <h3>Select a continuous sequence of words representing the *first* instance of the yellow-highlighted entity in the text. If there is no such entity (yellow-highlighted entity *is* the first instance, or does not refer to anything else in the text), select nothing. (Click 'Submit' when done):
+          <input type="button" id="Submit" name="pair" value="Submit" onclick="location.href = 'tutorial3.html';"> </h3>
+        <blockquote>
+          <span class="tok0" onmouseover="highlight('.tok0')" onmouseout="unhighlight('.tok0')" onclick="do_click(0)">The</span> <span class="tok1" onmouseover="highlight('.tok1')" onmouseout="unhighlight('.tok1')" onclick="do_click(1)">legal</span> <span class="tok2" onmouseover="highlight('.tok2')" onmouseout="unhighlight('.tok2')" onclick="do_click(2)">pressures</span> <span class="tok3" onmouseover="highlight('.tok3')" onmouseout="unhighlight('.tok3')" onclick="do_click(3)">facing</span> <span class="tok4" onmouseover="highlight('.tok4')" onmouseout="unhighlight('.tok4')" onclick="do_click(4)">Michael</span> <span class="tok5" onmouseover="highlight('.tok5')" onmouseout="unhighlight('.tok5')" onclick="do_click(5)">Cohen</span> <span class="tok6" onmouseover="highlight('.tok6')" onmouseout="unhighlight('.tok6')" onclick="do_click(6)">are</span> <span class="tok7" onmouseover="highlight('.tok7')" onmouseout="unhighlight('.tok7')" onclick="do_click(7)">growing</span> <span class="tok8" onmouseover="highlight('.tok8')" onmouseout="unhighlight('.tok8')" onclick="do_click(8)">in</span> <span class="tok9" onmouseover="highlight('.tok9')" onmouseout="unhighlight('.tok9')" onclick="do_click(9)">a</span> <span class="tok10" onmouseover="highlight('.tok10')" onmouseout="unhighlight('.tok10')" onclick="do_click(10)">wide-ranging</span> <span class="tok11" onmouseover="highlight('.tok11')" onmouseout="unhighlight('.tok11')" onclick="do_click(11)">investigation</span> <span class="tok12" onmouseover="highlight('.tok12')" onmouseout="unhighlight('.tok12')" onclick="do_click(12)">of</span> <span class="tok13" onmouseover="highlight('.tok13')" onmouseout="unhighlight('.tok13')" onclick="do_click(13)">his</span> <span class="tok14" onmouseover="highlight('.tok14')" onmouseout="unhighlight('.tok14')" onclick="do_click(14)">personal</span> <span class="tok15" onmouseover="highlight('.tok15')" onmouseout="unhighlight('.tok15')" onclick="do_click(15)">business</span> <span class="tok16" onmouseover="highlight('.tok16')" onmouseout="unhighlight('.tok16')" onclick="do_click(16)">affairs</span> <span class="tok17" onmouseover="highlight('.tok17')" onmouseout="unhighlight('.tok17')" onclick="do_click(17)">and</span> <span class="tok18" onmouseover="highlight('.tok18')" onmouseout="unhighlight('.tok18')" onclick="do_click(18)">his</span> <span class="tok19" onmouseover="highlight('.tok19')" onmouseout="unhighlight('.tok19')" onclick="do_click(19)">work</span> <span class="tok20" onmouseover="highlight('.tok20')" onmouseout="unhighlight('.tok20')" onclick="do_click(20)">on</span> <span class="tok21" onmouseover="highlight('.tok21')" onmouseout="unhighlight('.tok21')" onclick="do_click(21)">behalf</span> <span class="tok22" onmouseover="highlight('.tok22')" onmouseout="unhighlight('.tok22')" onclick="do_click(22)">of</span> <span class="tok23" onmouseover="highlight('.tok23')" onmouseout="unhighlight('.tok23')" onclick="do_click(23)">his</span> <span class="tok24" onmouseover="highlight('.tok24')" onmouseout="unhighlight('.tok24')" onclick="do_click(24)">former</span> <span class="tok25" onmouseover="highlight('.tok25')" onmouseout="unhighlight('.tok25')" onclick="do_click(25)">client,</span> <span class="tok26" onmouseover="highlight('.tok26')" onmouseout="unhighlight('.tok26')" onclick="do_click(26)">President</span> <span class="tok27" onmouseover="highlight('.tok27')" onmouseout="unhighlight('.tok27')" onclick="do_click(27)">Trump.</span> <span class="tok28" onmouseover="highlight('.tok28')" onmouseout="unhighlight('.tok28')" onclick="do_click(28)">In</span> <span class="tok29" onmouseover="highlight('.tok29')" onmouseout="unhighlight('.tok29')" onclick="do_click(29)">addition</span> <span class="tok30" onmouseover="highlight('.tok30')" onmouseout="unhighlight('.tok30')" onclick="do_click(30)">to</span> <span class="tok31" onmouseover="highlight('.tok31')" onmouseout="unhighlight('.tok31')" onclick="do_click(31)">his</span> <span class="tok32" onmouseover="highlight('.tok32')" onmouseout="unhighlight('.tok32')" onclick="do_click(32)">work</span> <span class="tok33" onmouseover="highlight('.tok33')" onmouseout="unhighlight('.tok33')" onclick="do_click(33)">for</span> <span class="tok34" onmouseover="highlight('.tok34')" onmouseout="unhighlight('.tok34')" onclick="do_click(34)">Mr.</span> <span class="tok35" onmouseover="highlight('.tok35')" onmouseout="unhighlight('.tok35')" onclick="do_click(35)">Trump,</span>
+          <span class="tok36" onmouseover="highlight('.tok36')" onmouseout="unhighlight('.tok36')" onclick="do_click(36)"><font color="black" style="background:yellow;border:solid thick black;">he</font></span>
+        </blockquote>
+    </div>
+    <a href="tutorial1.html">Go Back.</a>
+  </body>
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script type="text/javascript" src="formatted_predictions/predictions_20.js"></script>
+</html>

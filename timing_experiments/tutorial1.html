@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <hr>
+    <h3>Tutorial Example</h3>
+    <div id="tutorial">
+      <hr>
+      <p>In this experiment, you will see a passage like this:</p>
+      <blockquote id="text">
+        The legal pressures facing <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]<font color="black" style="background:lightblue;border:solid thick blue;">Michael Cohen</font>]</font> are growing in a wide-ranging investigation of <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font> personal business affairs and <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font> work on behalf of <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font> former client, President Trump.
+        In addition to <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font> work for Mr. Trump, <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]<font color="black" style="background:yellow;border:solid thick black;">he</font>]</font> pursued <font color="red" class="ex_0" onmouseover="highlight('.ex_0')" onmouseout="unhighlight('.ex_0')">[[P0]his]</font> own business interests, including ventures in real estate, personal loans and investments in taxi medallions.</blockquote>
+      <p>Note there are model-generated coreference clusters that are marked throughout the passage.
+        <b>These clusters may not be 100% accurate</b> (as the model is not 100% correct). They are mostly just there for your reference as you answer the questions.</p>
+      <p>Given the passage, you will be asked the following question:</p>
+      <h3>Are the boxed examples coreferent?: </h3>
+      <p id="pairwise_prompt_yes"><input type="button" id="Yes" name="pair" value="Yes" onclick="location.href = 'tutorial2.html';"> / <input type="button" id="No" name="pair" value="No"></p>
+      <p></p>
+      <p>In this case, since the two boxed spans "Michael Cohen" and "his" are coreferent, you would click 'yes'. (Please click 'yes' to proceed.)</p>
+    </div>
+    <a href="index.html">Go Back.</a>
+  </body>
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script type="text/javascript" src="formatted_predictions/predictions_20.js"></script>
+</html>
