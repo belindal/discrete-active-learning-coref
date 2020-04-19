@@ -36,47 +36,4 @@ def worker():
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=8080)
-
-#import socketserver
-#import http.server
-#import logging
-#import cgi
-#import tempfile
-#
-#PORT = 8000
-#
-#class ServerHandler(http.server.SimpleHTTPRequestHandler):
-#
-#    def make_file(self):
-#        return tempfile.TemporaryFile("wb+")
-#    
-#    # Comment out this line to reproduce the error
-#    cgi.FieldStorage.make_file = make_file
-#
-#    def do_GET(self):
-#        logging.error(self.headers)
-#        http.server.SimpleHTTPRequestHandler.do_GET(self)
-#
-#    def do_POST(self):
-#        logging.error(self.headers)
-#        form = cgi.FieldStorage(
-#            fp=self.rfile,
-#            headers=self.headers,
-#            environ={'REQUEST_METHOD':'POST',
-#                     'CONTENT_TYPE':self.headers['Content-Type'],
-#                     })
-#        if form.list is not None:
-#            for item in form.list:
-#                logging.error(item)
-#        http.server.SimpleHTTPRequestHandler.do_GET(self)
-#
-#        with open("data.txt", "w") as file:
-#            for key in form.keys(): 
-#                file.write(str(form.getvalue(str(key))) + ",")
-#
-#Handler = ServerHandler
-#
-#httpd = socketserver.TCPServer(("", PORT), Handler)
-#
-#print("serving at port", PORT)
-#httpd.serve_forever()
+    

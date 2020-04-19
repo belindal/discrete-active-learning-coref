@@ -80,11 +80,9 @@ for save_preds_dir in [
 
         json.dump(all_texts, open(os.path.join(save_formatted_preds_dir, "text_{}.json".format(sample_idx)), "w"))
         json.dump(interactive_texts, open(os.path.join(save_formatted_preds_dir, "interactive_text_{}.json".format(sample_idx)), "w"))
-
-        f.write("""
-const pairwise = {};""".format(str(pairwise).lower()))
-        f.write("""
-const all_texts = {};""".format(all_texts[:1000]))
-        f.write("""
-const interactive_texts = {};""".format(interactive_texts[:1000]))
+        
+        f.write("""const dataset_idx = '{}';""".format(sample_idx[0]))
+        f.write("""const pairwise = {};""".format(str(pairwise).lower()))
+        f.write("""const all_texts = {};""".format(all_texts[:1000]))
+        f.write("""const interactive_texts = {};""".format(interactive_texts[:1000]))
 
