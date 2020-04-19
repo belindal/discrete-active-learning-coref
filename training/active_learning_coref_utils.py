@@ -336,12 +336,10 @@ def query_user_labels_mention(
     translation_reference=None, save_al_queries=False, batch=None,
     save_dir=None, existing_span_clusters=None,
 ):
-    # TODO check if we can set user_labels to -1 if it is 1st span
     # returns:
     # 1. edge: indA of edge, if coreferent, will be identical to indA_edge_ask, otherwise,
     #          edge antecedent will be "fixed", pointing to -1 if there are no other spans
-    #          in cluster, pointing to itself if it is 1st/HEAD span of cluster, or pointing
-    #          to 1st span of in cluster if in cluster and not HEAD span
+    #          in cluster, or if it, in and of itself, is the 1st/HEAD span of cluster
     indC_antecedent = output_dict['predicted_antecedents'][mention[0], mention[1]]
     if indC_antecedent < 0:
         # ask about most likely non-null antecedent
