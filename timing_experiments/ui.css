@@ -1,0 +1,21 @@
+#Yes {
+  background-color:green;
+  border: darkgreen solid thick;
+}
+
+#No {
+  background-color:red;
+  border: darkred solid thick;
+}
+
+input[type=button] {
+  background-color:slateblue;
+  border: darkslateblue solid thick;
+  color: white;
+  padding: 8px 16px;
+  text-decoration: none;
+  margin: 4px 2px;
+  cursor: pointer;
+  font-size: 1em;
+  font-weight: bold;
+}

@@ -31,7 +31,7 @@ function setup_experiments() {
    body += "    <p id='pairwise_prompt'><input type='button' id='Yes' name='pair' value='Yes' onclick='is_coreferent()'> / ";
    body += "<input type='button' id='No' name='pair' value='No' onclick='not_coreferent()'></p>";
    body += "    <p id='discrete_prompt'></p>";
-   body += "    <p id='interactive_text'></p>";
+   body += "    <blockquote id='interactive_text'></blockquote>";
    body += "    <hr>";
    document.getElementsByTagName("body")[0].innerHTML = body;
    display_curr_example();
