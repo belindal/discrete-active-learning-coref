@@ -110,7 +110,7 @@ function setup_experiments() {
    var jsonstr = JSON.stringify([uid, data, final_str]);
    // ajax the JSON to the server
    console.log(jsonstr);
-   $.post("http://localhost:8080/receiver", jsonstr, function() {
+   $.post("http://128.208.5.20:8080/receiver", jsonstr, function() {
  
    });
    // stop link reloading the page

@@ -29,7 +29,7 @@ def worker():
 
     # GET request
     else:
-        message = {'greeting':'Hello from Flask!'}
+        message = {'greeting':'Server is working!'}
         return jsonify(message)  # serialize and use JSON headers
     
     return result
