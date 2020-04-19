@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='UTF-8'/>
+    <title>Active Learning Coref - Timing Experiments</title>
+    <link rel='stylesheet' href='ui.css' />
+  </head>
+  <body>
+    <h3 id='countTime'>30:00</h3>
+    <h2>#<span id='idx'></span></h2>
+    <blockquote id='text'></blockquote><hr>
+    <h3>Are the boxed examples coreferent?: </h3>
+    <p id='pairwise_prompt'><input type='button' id='Yes' name='pair' value='Yes' onclick='is_coreferent()'> / 
+    <input type='button' id='No' name='pair' value='No' onclick='not_coreferent()'></p>
+    <p id='discrete_prompt'></p>
+    <blockquote id='interactive_text'></blockquote>
+    <hr>
+  </body>
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+  <script type="text/javascript" src="experiment.js"></script>
+  <script type="text/javascript" src="timing_experiments_data/discrete_examples/formatted_predictions/predictions_B.js"></script>
+  <script>setup_experiments()</script>
+</html>
