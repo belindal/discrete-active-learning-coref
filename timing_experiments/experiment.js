@@ -1,4 +1,4 @@
-var uid = create_UUID();
+var uid = "";
 var curr_example = 0;
 var last_display_time = -1;
 var discrete_q_mode = false;
@@ -24,6 +24,7 @@ var timerId = setInterval(function(){
 
 
 function setup_experiments() {
+   uid = create_UUID();
    body = "    <h3 id='countTime'>" + timerId + "</h3>";
    body += "    <h2>#<span id='idx'></span></h2>";
    body += "    <blockquote id='text'></blockquote><hr>";
