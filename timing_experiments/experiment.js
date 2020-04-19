@@ -6,7 +6,7 @@ var selected_idxs = new Set();
 var saved_times = [];
 var actions = [];
 
-var countdown = 30 * 60 * 1000;
+var countdown = 1000;//30 * 60 * 1000;
 var timerId = setInterval(function(){
   countdown -= 1000;
   var min = Math.floor(countdown / (60 * 1000));
@@ -114,7 +114,7 @@ function setup_experiments() {
  
    });
    // stop link reloading the page
-   event.preventDefault();
+   //event.preventDefault();
  }
  
  function undo() {
