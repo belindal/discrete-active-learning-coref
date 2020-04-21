@@ -1,7 +1,6 @@
 var uid = "";
 var curr_example = 0;
 var last_display_time = -1;
-var discrete_only_mode = true;
 var discrete_q_mode = false;
 var selected_idxs = new Set();
 var saved_times = [];
@@ -86,10 +85,8 @@ function setup_experiments() {
  
  function display_curr_example() {
    document.getElementById("idx").innerHTML = curr_example;
-   if (!discrete_only_mode) {
-      document.getElementById("text").innerHTML = all_texts[curr_example];
-   }
-   if (discrete_q_mode || discrete_only_mode) {
+   document.getElementById("text").innerHTML = all_texts[curr_example];
+   if (discrete_q_mode) {
      document.getElementById("interactive_text").innerHTML = interactive_texts[curr_example];
      document.getElementById("discrete_prompt").innerHTML = "<hr> <h3>Select a continuous sequence of words representing the *first* instance of the yellow-highlighted entity in the text. If there is no such entity (yellow-highlighted entity *is* the first instance, or does not refer to anything else in the text), select nothing. (Click 'Submit' when done): <input type='button' id='Submit' name='pair' value='Submit' onclick='record_discrete_response()'> </h3>"
      document.getElementById("pairwise_prompt").innerHTML = "NO";
