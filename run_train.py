@@ -13,15 +13,20 @@ from allennlp.commands.evaluate import evaluate
 from allennlp.commands.subcommand import Subcommand
 from allennlp.common.checks import ConfigurationError, check_for_gpu
 from allennlp.common import Params
-from allennlp.common.util import prepare_environment, prepare_global_logging, \
-                                 get_frozen_and_tunable_parameter_names, dump_metrics
+from allennlp.common.util import (
+    prepare_environment,
+    prepare_global_logging,
+    get_frozen_and_tunable_parameter_names,
+    dump_metrics,
+    import_submodules,
+)
 from allennlp.data import Vocabulary
 from allennlp.data.instance import Instance
 from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.iterators.data_iterator import DataIterator
 from allennlp.models.archival import archive_model, CONFIG_NAME
 from allennlp.models.model import Model, _DEFAULT_WEIGHTS
-from allennlp.models.coreference_resolution import CorefEnsemble
+from discrete_al_coref_module.models.ensemble_coref import CorefEnsemble
 from allennlp.training.trainer import Trainer
 import tempfile
 from tempfile import TemporaryDirectory
@@ -316,6 +321,7 @@ def train_model(params: Params,
 #
 def main(cuda_device, testing=False, testing_vocab=False, experiments=None, pairwise=False, selector='entropy', num_ensemble_models=None,
          no_clusters=False, args=None):
+    import_submodules('discrete_al_coref_module')
     assert(selector == 'entropy' or selector == 'score' or selector == 'random' or selector == 'qbc')
     if hasattr(args, 'labels_to_query'):
         assert args.labels_to_query >= 0
