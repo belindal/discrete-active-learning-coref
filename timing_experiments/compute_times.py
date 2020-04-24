@@ -5,7 +5,6 @@ import json
 import numpy as np
 import math
 
-#docs = ["annotations/belinda_discrete_labels.txt", "annotations/gabi_discrete_labels.txt"]
 docs = glob.glob("results/*.json")
 #docs = glob.glob("*.json")
 print(docs)
