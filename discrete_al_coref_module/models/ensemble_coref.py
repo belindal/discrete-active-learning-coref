@@ -8,14 +8,15 @@ from allennlp.models.model import Model
 from allennlp.common import Params
 from allennlp.data import Vocabulary
 from allennlp.training.metrics import MentionRecall, ConllCorefScores
-from allennlp.models.coreference_resolution import CoreferenceResolver
 from allennlp.nn import util
+
+from discrete_al_coref_module.models.coref import ALCoreferenceResolver
 import pdb
 
 
 @Model.register("coref-ensemble")
 class CorefEnsemble(Ensemble):
-    def __init__(self, submodels: List[CoreferenceResolver]) -> None:
+    def __init__(self, submodels: List[ALCoreferenceResolver]) -> None:
         super().__init__(submodels)
         self._mention_recall = MentionRecall()
         self._conll_coref_scores = ConllCorefScores()

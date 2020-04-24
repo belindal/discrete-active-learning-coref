@@ -26,11 +26,11 @@ from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.iterators.data_iterator import DataIterator
 from allennlp.models.archival import archive_model, CONFIG_NAME
 from allennlp.models.model import Model, _DEFAULT_WEIGHTS
-from discrete_al_coref_module.models.ensemble_coref import CorefEnsemble
-from allennlp.training.trainer import Trainer
 import tempfile
 from tempfile import TemporaryDirectory
 
+from discrete_al_coref_module.models.ensemble_coref import CorefEnsemble
+from discrete_al_coref_module.training.al_trainer import ALCorefTrainer
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -261,19 +261,17 @@ def train_model(params: Params,
     for name in tunable_parameter_names:
         logger.info(name)
 
-    trainer_choice = trainer_params.pop_choice("type",
-                                               Trainer.list_available(),
-                                               default_to_first_choice=True)
-    trainer = Trainer.by_name(trainer_choice).from_params(model=model,
-                                                          serialization_dir=serialization_dir,
-                                                          iterator=iterator,
-                                                          train_data=train_data,
-                                                          held_out_train_data=held_out_train_data,
-                                                          validation_data=validation_data,
-                                                          params=trainer_params,
-                                                          validation_iterator=validation_iterator,
-                                                          held_out_iterator=held_out_iterator,
-                                                          ensemble_model=ensemble_model)
+    trainer_choice = trainer_params.pop("type")
+    trainer = ALCorefTrainer.by_name(trainer_choice).from_params(model=model,
+                                                                serialization_dir=serialization_dir,
+                                                                iterator=iterator,
+                                                                train_data=train_data,
+                                                                held_out_train_data=held_out_train_data,
+                                                                validation_data=validation_data,
+                                                                params=trainer_params,
+                                                                validation_iterator=validation_iterator,
+                                                                held_out_iterator=held_out_iterator,
+                                                                ensemble_model=ensemble_model)
 
     evaluate_on_test = params.pop_bool("evaluate_on_test", False)
     params.assert_empty('base train command')
@@ -338,11 +336,11 @@ def main(cuda_device, testing=False, testing_vocab=False, experiments=None, pair
             percent_list = [20]#[180, 160, 20]
     else:
         percent_list = [args.labels_to_query]
-    if selector == 'qbc':
-        cuda_device = [(cuda_device + i) % 3 for i in range(3)]
-        os.system('rm -rf active_learning_model_states_ensemble_' + str(cuda_device))
-    else:
-        cuda_device = [cuda_device]
+    # if selector == 'qbc':
+    #     cuda_device = [(cuda_device + i) % 3 for i in range(3)]
+    #     os.system('rm -rf active_learning_model_states_ensemble_' + str(cuda_device))
+    # else:
+    #     cuda_device = cuda_device
     # ''' Make training happen
     if experiments:
         save_dir = experiments
@@ -387,8 +385,9 @@ def main(cuda_device, testing=False, testing_vocab=False, experiments=None, pair
             params.params['trainer']['active_learning']['epoch_interval'] = 0
             del params.params['test_data_path']
             #comment out or keep
-            #params.params['train_data_path'] = "../data/coref_ontonotes/dev.english.v4_gold_conll"
-            #params.params['dataset_reader']['fully_labelled_threshold'] = 100
+            params.params['train_data_path'] = "/checkpoint/belindali/active_learning_coref/coref_ontonotes/dev.english.v4_gold_conll"
+            params.params['dataset_reader']['fully_labelled_threshold'] = 100
+            #'''
             if testing:
                 params.params['model']['text_field_embedder']['token_embedders']['tokens'] = {'type': 'embedding', 'embedding_dim': 300}
         with TemporaryDirectory() as serialization_dir:

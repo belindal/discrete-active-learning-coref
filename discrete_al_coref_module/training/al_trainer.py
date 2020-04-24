@@ -29,24 +29,30 @@ from tensorboardX import SummaryWriter
 
 from allennlp.common import Params, Registrable
 from allennlp.common.checks import ConfigurationError
-from allennlp.common.util import dump_metrics, gpu_memory_mb, parse_cuda_device, peak_memory_mb, scatter_kwargs
+from allennlp.common.util import dump_metrics, gpu_memory_mb, peak_memory_mb
 from allennlp.common.tqdm import Tqdm
 from allennlp.data.instance import Instance
 from allennlp.data.iterators.data_iterator import DataIterator
-from allennlp.data.fields import SequenceLabelField, SequenceField, PairField, ListField, IndexField
+from allennlp.data.fields import SequenceLabelField, SequenceField, ListField, IndexField
 from allennlp.models.model import Model
-from allennlp.models.coreference_resolution import CoreferenceResolver, CorefEnsemble
 from allennlp.nn import util
-from allennlp.training import active_learning_coref_utils as al_util
 from allennlp.training.learning_rate_schedulers import LearningRateScheduler
 from allennlp.training.metrics import MentionRecall, ConllCorefScores
 from allennlp.training.optimizers import Optimizer
+from allennlp.training.trainer_base import TrainerBase
+
+from discrete_al_coref_module.dataset_readers.pair_field import PairField
+from discrete_al_coref_module.training import active_learning_coref_utils as al_util
 
 import pdb
 import random
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
+
+PAIRWISE_Q_TIME = 15.961803738317756
+DISCRETE_Q_TIME = 15.573082474226803
+DISCRETE_PAIRWISE_RATIO = DISCRETE_Q_TIME / PAIRWISE_Q_TIME
 
 def is_sparse(tensor):
     return tensor.is_sparse
@@ -167,9 +173,8 @@ def str_to_time(time_str: str) -> datetime.datetime:
     return datetime.datetime(*pieces)
 
 
-class Trainer(Registrable):
-    default_implementation = "default"
-
+@TrainerBase.register("al_coref_trainer")
+class ALCorefTrainer(TrainerBase):
     def __init__(self,
                  model: Model,
                  optimizer: torch.optim.Optimizer,
@@ -338,17 +343,11 @@ class Trainer(Registrable):
         self._validation_metric = validation_metric[1:]
         self._validation_metric_decreases = increase_or_decrease == "-"
 
-        if not isinstance(cuda_device, int) and not isinstance(cuda_device, list):
-            raise ConfigurationError("Expected an int or list for cuda_device, got {}".format(cuda_device))
+        if not isinstance(cuda_device, int):
+            raise ConfigurationError("Expected an int for cuda_device, got {}".format(cuda_device))
 
-        if isinstance(cuda_device, list):
-            logger.warning(f"Multiple GPU support is experimental not recommended for use. "
-                           "In some cases it may lead to incorrect results or undefined behavior.")
-            self._multiple_gpu = True
-            self._cuda_devices = cuda_device
-        else:
-            self._multiple_gpu = False
-            self._cuda_devices = [cuda_device]
+        self._multiple_gpu = False
+        self._cuda_devices = [cuda_device]
 
         if self._cuda_devices[0] != -1:
             self.model = self.model.cuda(self._cuda_devices[0])
@@ -381,8 +380,6 @@ class Trainer(Registrable):
         self._do_active_learning = False
         self.DEBUG_BREAK_FLAG = False
         if active_learning:
-            if active_learning['model_type'] != 'coref':
-                raise ConfigurationError("Active learning only compatible with coreference model (for now)")
             self._do_active_learning = True
             self._active_learning_epoch_interval = active_learning['epoch_interval']
             self._use_percent_labels = active_learning['use_percent'] is not None and active_learning['use_percent']
@@ -466,62 +463,13 @@ class Trainer(Registrable):
             return sparse_clip_norm(parameters_to_clip, self._grad_norm)
         return None
 
-    def _data_parallel(self, batch):
-        """
-        Do the forward pass using multiple GPUs.  This is a simplification
-        of torch.nn.parallel.data_parallel to support the allennlp model
-        interface.
-        """
-        inputs, module_kwargs = scatter_kwargs((), batch, self._cuda_devices, 0)
-
-        used_device_ids = self._cuda_devices[:len(inputs)]
-        replicas = replicate(self.model, used_device_ids)
-        try:
-            outputs = parallel_apply(replicas, inputs, module_kwargs, used_device_ids)
-        except:
-            pdb.set_trace()
-            labels_map = {}
-            for doc in self.train_data:
-                span_labels = doc['span_labels'].as_tensor(doc['span_labels'].get_padding_lengths())
-                labels_map[doc['metadata']['ID']] = {'span_labels': span_labels}
-                if 'must_link' in doc:
-                    labels_map[doc['metadata']['ID']]['must_link'] = doc['must_link'].as_tensor(doc['must_link'].get_padding_lengths())
-                    labels_map[doc['metadata']['ID']]['cannot_link'] = doc['cannot_link'].as_tensor(doc['cannot_link'].get_padding_lengths())
-            #save data
-            save_file = "../data/saved_data_" + str(self._selector) + "_"
-            query_info_save_file = '../saved_query_infos/' + str(self._selector) + '_'
-            if self.ensemble_model is not None:
-                save_file += str(len(self.ensemble_model.submodels)) + "_"
-                query_info_save_file += str(len(self.ensemble_model.submodels)) + '_'
-            save_file += str(self._active_learning_num_labels) + ".th"
-            query_info_save_file += str(self._active_learning_num_labels) 
-            query_info_idx = 0
-            while os.path.exists(query_info_save_file + '_' + str(query_info_idx) + '.json'):
-                query_info_idx += 1
-            query_info_save_file = query_info_save_file + '_' + str(query_info_idx) + '.json'
-            torch.save(labels_map, save_file)
-            with open(query_info_save_file, 'w') as f:
-                json.dump(self._docid_to_query_time_info, f)
-            return
-        if self._do_active_learning:
-            assert(len(outputs) == 1)
-            return outputs[0]
-
-        # Only the 'loss' is needed.
-        # a (num_gpu, ) tensor with loss on each GPU
-        losses = gather([output['loss'].unsqueeze(0) for output in outputs], used_device_ids[0], 0)
-        return {'loss': losses.mean()}
-
     def batch_loss(self, batch: torch.Tensor, for_training: bool) -> torch.Tensor:
         """
         Does a forward pass on the given batch and returns the ``loss`` value in the result.
         If ``for_training`` is `True` also applies regularization penalty.
         """
-        if self._multiple_gpu:
-            output_dict = self._data_parallel(batch)
-        else:
-            batch = util.move_to_device(batch, self._cuda_devices[0])
-            output_dict = self.model(**batch)
+        batch = util.move_to_device(batch, self._cuda_devices[0])
+        output_dict = self.model(**batch)
 
         try:
             loss = output_dict["loss"]
@@ -1071,11 +1019,10 @@ class Trainer(Registrable):
                             batch['get_scores'] = True
                             if self._selector == 'qbc':
                                 self.model = self.ensemble_model
-                            if self._multiple_gpu:
-                                output_dict = self._data_parallel(batch)
-                            else:
-                                batch = util.move_to_device(batch, self._cuda_devices[0])
-                                output_dict = self.model(**batch)
+                            batch = util.move_to_device(batch, self._cuda_devices[0])
+                            import pdb
+                            pdb.set_trace()
+                            output_dict = self.model(**batch)
                             batch_size = len(output_dict['predicted_antecedents'])
                             translation_reference = output_dict['top_span_indices']
 
@@ -1134,11 +1081,11 @@ class Trainer(Registrable):
                                 elif self._discrete_query_time_info is not None:
                                     # ONLY FOR 1 INSTANCE PER BATCH
                                     batch_query_info = self._discrete_query_time_info[batch['metadata'][0]["ID"]]
-                                    self._discrete_query_time_diff -= batch_query_info['not coref'] * 35.05054725571854 + batch_query_info['coref'] * 10.75954115554078
+                                    self._discrete_query_time_diff -= batch_query_info['not coref'] * DISCRETE_Q_TIME + batch_query_info['coref'] * PAIRWISE_Q_TIME
                                     assert batch_query_info['batch_size'] == 1
                                     num_to_query = min(total_possible_queries,
                                                        int(math.ceil(batch_query_info['not coref']
-                                                           * 3.257624721075467 + batch_query_info['coref'])))
+                                                           * DISCRETE_PAIRWISE_RATIO + batch_query_info['coref'])))
                                 else:
                                     num_to_query = min(self._active_learning_num_labels, total_possible_queries)
                                 top_spans_model_labels = torch.gather(batch['span_labels'], 1, translation_reference)
@@ -1176,10 +1123,10 @@ class Trainer(Registrable):
                                                                           os.path.join(self._serialization_dir, "saved_queries_epoch_{}".format(epoch)),
                                                                           batch['span_labels'])
                                     if indA_edge_asked[2] == indA_edge[2]:
-                                        self._discrete_query_time_diff += 10.75954115554078  # TODO not hardcode
+                                        self._discrete_query_time_diff += PAIRWISE_Q_TIME  # TODO not hardcode
                                         num_coreferent += 1
                                     else:
-                                        self._discrete_query_time_diff += 35.05054725571854  # TODO don't hardcode
+                                        self._discrete_query_time_diff += DISCRETE_Q_TIME  # TODO don't hardcode
 
                                     # add mention to queried before (arbitrarily set it in predicted_antecedents and coreference_scores to no cluster, even if not truly
                                     # the case--the only thing that matters is that it has a value that it is 100% confident of)
@@ -1240,10 +1187,10 @@ class Trainer(Registrable):
                                 elif self._discrete_query_time_info is not None:
                                     # ONLY FOR 1 INSTANCE PER BATCH
                                     batch_query_info = self._discrete_query_time_info[batch['metadata'][0]["ID"]]
-                                    self._discrete_query_time_diff -= batch_query_info['not coref'] * 35.05054725571854 + batch_query_info['coref'] * 10.75954115554078
+                                    self._discrete_query_time_diff -= batch_query_info['not coref'] * DISCRETE_Q_TIME + batch_query_info['coref'] * PAIRWISE_Q_TIME
                                     assert batch_query_info['batch_size'] == 1
                                     num_to_query = int(np.round(batch_query_info['not coref']
-                                                                * 3.257624721075467 + batch_query_info['coref']))
+                                                                * DISCRETE_PAIRWISE_RATIO + batch_query_info['coref']))
                                 else:
                                     num_to_query = min(self._active_learning_num_labels, total_possible_queries)
                                 top_spans_model_labels = torch.gather(batch['span_labels'], 1, translation_reference)
@@ -1742,7 +1689,7 @@ class Trainer(Registrable):
         validation_metric = params.pop("validation_metric", "-loss")
         shuffle = params.pop_bool("shuffle", True)
         num_epochs = params.pop_int("num_epochs", 20)
-        cuda_device = parse_cuda_device(params.pop("cuda_device", -1))
+        cuda_device = params.pop("cuda_device", -1)
         grad_norm = params.pop_float("grad_norm", None)
         grad_clipping = params.pop_float("grad_clipping", None)
         lr_scheduler_params = params.pop("learning_rate_scheduler", None)
@@ -1810,4 +1757,3 @@ class Trainer(Registrable):
                    ensemble_scheduler=ensemble_scheduler)
 
 
-Trainer.register("default")(Trainer)
