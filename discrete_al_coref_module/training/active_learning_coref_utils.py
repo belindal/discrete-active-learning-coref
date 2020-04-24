@@ -29,7 +29,7 @@ def translate_to_indA(edges, output_dict, all_spans, translation_reference=None)
     # indB = output_dict['antecedent_indices'][instance, proform idx, indC]
     if translation_reference is not None:
         indA_edges = edges.clone()
-        indA_edges[:,2] = output_dict['antecedent_indices'][indA_edges[:,0], indA_edges[:,1], indA_edges[:,2]]
+        indA_edges[:,2] = output_dict['antecedent_indices'][indA_edges[:,1], indA_edges[:,2]]
         indA_edges[:,1] = translation_reference[indA_edges[:,0], indA_edges[:,1]]
         indA_edges[:,2] = translation_reference[indA_edges[:,0], indA_edges[:,2]]
         indA_edges[:,2][no_antecedent_mask] = -1
@@ -38,7 +38,7 @@ def translate_to_indA(edges, output_dict, all_spans, translation_reference=None)
     instances = edges[:, 0]
     ind_proforms = edges[:, 1]
     ind_antecedents = edges[:, 2]
-    ind_antecedents = output_dict['antecedent_indices'][instances, ind_proforms, ind_antecedents] #indB
+    ind_antecedents = output_dict['antecedent_indices'][ind_proforms, ind_antecedents] #indB
 
     proform_spans = output_dict['top_spans'][instances, ind_proforms]
     antecedent_spans = output_dict['top_spans'][instances, ind_antecedents]
@@ -89,9 +89,11 @@ def translate_to_indC(edges, output_dict, translation_reference, antecedent_ind_
     antecedent_top_indices = (translation_reference[edges[:, 0]] == edges[:, 2].unsqueeze(-1)).nonzero()
     if antecedent_top_indices.size(0) > 0:
         indC_edges[:, 2][antecedent_top_indices[:, 0]] = antecedent_top_indices[:, 1]
+    import pdb
+    pdb.set_trace()
     masked_antecedent_indices = output_dict['antecedent_indices'].clone()
     masked_antecedent_indices[~antecedent_ind_mask] = -2
-    has_antecedent_mask = (masked_antecedent_indices[indC_edges[:, 0], indC_edges[:, 1]] ==
+    has_antecedent_mask = (masked_antecedent_indices[indC_edges[:, 1]] ==
                            indC_edges[:, 2].unsqueeze(-1))
     antecedent_ant_indices = has_antecedent_mask.nonzero()
     has_antecedent_mask = has_antecedent_mask.sum(-1) > 0
@@ -563,7 +565,7 @@ def find_next_most_uncertain_mention(selector, model_labels, output_dict, querie
                                    ).unsqueeze(-1)
         coreference_probs = util.masked_log_softmax(score_instance, top_span_mask).exp()
         # output_dict['antecedent_indices'], and what cluster that antecedent belongs to (-1 for no cluster)
-        model_output_mention_pair_clusters = model_labels[b, output_dict['antecedent_indices'][b]]
+        model_output_mention_pair_clusters = model_labels[b, output_dict['antecedent_indices']]
         model_output_mention_pair_clusters[
             ~coref_scores_mask[b, :, 1:]] = -1  # ensure -infty (impossible antecedents are in no cluster)
         # add 1st column of empties to match coreference_probs size

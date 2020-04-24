@@ -53,6 +53,8 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 PAIRWISE_Q_TIME = 15.961803738317756
 DISCRETE_Q_TIME = 15.573082474226803
 DISCRETE_PAIRWISE_RATIO = DISCRETE_Q_TIME / PAIRWISE_Q_TIME
+SAVED_DISCRETE_TIMES_FILE = '/private/home/belindali/al_for_coref_results/discrete/discrete_entropy/{}_query_info.json'
+
 
 def is_sparse(tensor):
     return tensor.is_sparse
@@ -308,10 +310,11 @@ class ALCorefTrainer(TrainerBase):
         self._held_out_train_data = held_out_train_dataset
         self._discrete_query_time_info = None
         self._discrete_query_time_diff = 0  # our time - standard time
-        self._equal_time_flag = True  # TODO don't hardcode
-        if self._equal_time_flag:  # TODO don't hardcode FP
-            with open('/private/home/belindali/al_for_coref_results/discrete/discrete_entropy/' + str(active_learning['num_labels']) + '_query_info.json') as f:
-                self._discrete_query_time_info = json.load(f)
+        self._equal_time_flag = False  # TODO don't hardcode
+        if self._equal_time_flag:
+            if os.path.exists(SAVED_DISCRETE_TIMES_FILE.format(active_learning['num_labels'])):
+                with open(SAVED_DISCRETE_TIMES_FILE.format(active_learning['num_labels'])) as f:
+                    self._discrete_query_time_info = json.load(f)
         self._docid_to_query_time_info = {}
         self._validation_data = validation_dataset
 
@@ -1020,8 +1023,6 @@ class ALCorefTrainer(TrainerBase):
                             if self._selector == 'qbc':
                                 self.model = self.ensemble_model
                             batch = util.move_to_device(batch, self._cuda_devices[0])
-                            import pdb
-                            pdb.set_trace()
                             output_dict = self.model(**batch)
                             batch_size = len(output_dict['predicted_antecedents'])
                             translation_reference = output_dict['top_span_indices']
@@ -1083,9 +1084,9 @@ class ALCorefTrainer(TrainerBase):
                                     batch_query_info = self._discrete_query_time_info[batch['metadata'][0]["ID"]]
                                     self._discrete_query_time_diff -= batch_query_info['not coref'] * DISCRETE_Q_TIME + batch_query_info['coref'] * PAIRWISE_Q_TIME
                                     assert batch_query_info['batch_size'] == 1
-                                    num_to_query = min(total_possible_queries,
-                                                       int(math.ceil(batch_query_info['not coref']
-                                                           * DISCRETE_PAIRWISE_RATIO + batch_query_info['coref'])))
+                                    num_to_query = min(total_possible_queries, int(math.ceil(
+                                        batch_query_info['not coref'] * DISCRETE_PAIRWISE_RATIO + batch_query_info['coref']
+                                    )))
                                 else:
                                     num_to_query = min(self._active_learning_num_labels, total_possible_queries)
                                 top_spans_model_labels = torch.gather(batch['span_labels'], 1, translation_reference)
