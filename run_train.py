@@ -384,7 +384,7 @@ def main(cuda_device, testing=False, testing_vocab=False, experiments=None, pair
         if testing or testing_vocab:
             params.params['trainer']['active_learning']['epoch_interval'] = 0
             del params.params['test_data_path']
-            #comment out or keep
+            '''
             params.params['train_data_path'] = "/checkpoint/belindali/active_learning_coref/coref_ontonotes/dev.english.v4_gold_conll"
             params.params['dataset_reader']['fully_labelled_threshold'] = 100
             #'''

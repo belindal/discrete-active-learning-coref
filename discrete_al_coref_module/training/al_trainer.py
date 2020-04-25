@@ -381,7 +381,6 @@ class ALCorefTrainer(TrainerBase):
 
         # Whether or not to do active learning
         self._do_active_learning = False
-        self.DEBUG_BREAK_FLAG = False
         if active_learning:
             self._do_active_learning = True
             self._active_learning_epoch_interval = active_learning['epoch_interval']
@@ -1025,7 +1024,7 @@ class ALCorefTrainer(TrainerBase):
                         if self._query_type == 'discrete':
                             all_queried_mentions = (batch['span_labels'] != -1).nonzero()
                             queried_mentions_mask = torch.zeros(output_dict['coreference_scores'].size()[:2],
-                                dtype=torch.uint8).cuda(self._cuda_devices[0])  # should be all false
+                                dtype=torch.bool).cuda(self._cuda_devices[0])  # should be all false
                             # convert to indices of top_spans for consistency's sake
                             if len(all_queried_mentions) > 0:
                                 all_queried_mentions_spans = batch['spans'][all_queried_mentions[:,0], all_queried_mentions[:,1]]
@@ -1037,7 +1036,7 @@ class ALCorefTrainer(TrainerBase):
                             # TODO possibly correct in some way
                             all_queried_edges = (batch['span_labels'] != -1).nonzero()
                             queried_edges_mask = torch.zeros(output_dict['coreference_scores'].size(),
-                                                                dtype=torch.uint8).cuda(self._cuda_devices[0])
+                                                                dtype=torch.bool).cuda(self._cuda_devices[0])
                             if len(all_queried_edges) > 0:
                                 # TODO fix this is wrong
                                 top_queried_edges = al_util.translate_to_indA(all_queried_edges, output_dict,
@@ -1099,8 +1098,7 @@ class ALCorefTrainer(TrainerBase):
                                         al_util.find_next_most_uncertain_mention(self._selector,
                                                                                     top_spans_model_labels,
                                                                                     output_dict, queried_mentions_mask,
-                                                                                    verify_existing=verify_existing,
-                                                                                    DEBUG_BREAK_FLAG=self.DEBUG_BREAK_FLAG)
+                                                                                    verify_existing=verify_existing)
                                 else:
                                     mention, mention_score = \
                                         al_util.find_next_most_uncertain_mention_unclustered(self._selector,
@@ -1145,7 +1143,7 @@ class ALCorefTrainer(TrainerBase):
                                         al_util.get_link_closures_edge(batch['must_link'], batch['cannot_link'],
                                                                         indA_edge_asked, False,
                                                                         confirmed_clusters, output_dict,
-                                                                        translation_reference, False)
+                                                                        translation_reference)
 
                                 # Add edge deemed coreferent
                                 if indA_edge[2] != -1:
@@ -1159,7 +1157,7 @@ class ALCorefTrainer(TrainerBase):
                                     batch['must_link'], batch['cannot_link'], confirmed_clusters, output_dict = \
                                         al_util.get_link_closures_edge(batch['must_link'], batch['cannot_link'],
                                                                         indA_edge, True, confirmed_clusters,
-                                                                        output_dict, translation_reference, False)
+                                                                        output_dict, translation_reference)
                                 else:
                                     # set to null antecedent
                                     output_dict['predicted_antecedents'][mention[0], mention[1]] = -1
@@ -1193,8 +1191,7 @@ class ALCorefTrainer(TrainerBase):
                                 edge, edge_score = \
                                     al_util.find_next_most_uncertain_pairwise_edge(self._selector,
                                                                                     top_spans_model_labels,
-                                                                                    output_dict, queried_edges_mask,
-                                                                                    self.DEBUG_BREAK_FLAG)
+                                                                                    output_dict, queried_edges_mask)
                                 coreferent, indA_edge = \
                                     al_util.query_user_labels_pairwise(edge, output_dict, batch['spans'],
                                                                         batch['user_labels'], translation_reference,
@@ -1262,42 +1259,6 @@ class ALCorefTrainer(TrainerBase):
                         if self._query_type != 'discrete':
                             batch['must_link'], batch['cannot_link'] = al_util.get_link_closures(batch['must_link'],
                                                                                                     batch['cannot_link'])
-                        elif self.DEBUG_BREAK_FLAG:  # check closures against each other
-                            must_link_closure, cannot_link_closure = al_util.get_link_closures(batch['must_link'],
-                                                                                                batch['cannot_link'])
-                            try:
-                                assert must_link_closure.size(0) == batch['must_link'].size(
-                                    0)  # batch['must_link'].size(0)
-                                assert cannot_link_closure.size(0) == batch['cannot_link'].size(
-                                    0)  # batch['cannot_link'].size(0)
-                                assert must_link_closure.max() == batch['must_link'].max()  # batch['must_link'].size(0)
-                                assert cannot_link_closure.max() == batch['cannot_link'].max()  # batch['cannot_link'].size(0)
-                                if must_link_closure.size(0) > 0:
-                                    base = must_link_closure.max() + 1
-                                    must_link_closure_keys = must_link_closure[:, 0] * base ^ 2 + must_link_closure[
-                                                                                                    :,
-                                                                                                    1] * base + must_link_closure[
-                                                                                                                :, 2]
-                                    batch_must_link_keys = batch['must_link'][:,
-                                                                0] * base ^ 2 + batch['must_link'][:,
-                                                                                1] * base + batch['must_link'][:, 2]
-                                    m = (must_link_closure_keys.unsqueeze(-1) == batch_must_link_keys.unsqueeze(
-                                        0))
-                                    assert (m.sum(-1) != 1).nonzero().size(0) == 0
-                                if cannot_link_closure.size(0) > 0:
-                                    base = cannot_link_closure.max() + 1
-                                    cannot_link_closure_keys = cannot_link_closure[:,
-                                                                0] * base ^ 2 + cannot_link_closure[:,
-                                                                                1] * base + cannot_link_closure[:, 2]
-                                    batch_cannot_link_keys = batch['cannot_link'][:,
-                                                                    0] * base ^ 2 + batch['cannot_link'][:,
-                                                                                    1] * base + batch['cannot_link'][
-                                                                                                :, 2]
-                                    m = (cannot_link_closure_keys.unsqueeze(
-                                        -1) == batch_cannot_link_keys.unsqueeze(0))
-                                    assert (m.sum(-1) != 1).nonzero().size(0) == 0
-                            except:
-                                pdb.set_trace()
 
                         # update must-links and cannot-links
                         for edge in batch['must_link']:
@@ -1364,18 +1325,6 @@ class ALCorefTrainer(TrainerBase):
                                 predicted_clusters.append(batch['spans'][i][batch['span_labels'][i] == cluster].tolist())
                             predicted_clusters, mention_to_predicted = conll_coref.get_gold_clusters(predicted_clusters)
                             gold_clusters, mention_to_gold = conll_coref.get_gold_clusters(batch['metadata'][i]['clusters'])
-                            if self.DEBUG_BREAK_FLAG:
-                                if self._active_learning_percent_labels == 1:
-                                    import pickle
-                                    pickle.dump(predicted_clusters, open('predicted_clusters.pkl', 'wb'), pickle.HIGHEST_PROTOCOL)
-                                    pickle.dump(gold_clusters, open('gold_clusters.pkl', 'wb'), pickle.HIGHEST_PROTOCOL)
-                                    pickle.dump(mention_to_predicted, open('mention_to_predicted.pkl', 'wb'), pickle.HIGHEST_PROTOCOL)
-                                    pickle.dump(mention_to_gold, open('mention_to_gold.pkl', 'wb'), pickle.HIGHEST_PROTOCOL)
-                                    os.system("python verify_clusters.py")
-                                    pdb.set_trace()
-                                    #for span in spans: print(str(span) + " " + str(((output_dict['top_spans'][:,:,0] == span[0]) & (output_dict['top_spans'][:,:,1] == span[1])).nonzero()))
-                                else:
-                                    pdb.set_trace()
                             for scorer in conll_coref.scorers:
                                 scorer.update(predicted_clusters, gold_clusters, mention_to_predicted, mention_to_gold)
                         new_P, new_R, new_F1 = conll_coref.get_metric()
@@ -1383,11 +1332,6 @@ class ALCorefTrainer(TrainerBase):
                                                 'old_R': held_out_metrics['coref_recall'], 'new_R': new_R,
                                                 'old_F1': held_out_metrics['coref_f1'], 'new_F1': new_F1,
                                                 'MR': held_out_metrics['mention_recall'], 'loss': held_out_metrics['loss']}
-                        if ((self._use_percent_labels and self._active_learning_percent_labels == 0) 
-                            or (not self._use_percent_labels is not None and self._active_learning_num_labels == 0) 
-                            and new_F1 != held_out_metrics['coref_f1']):
-                            if self.DEBUG_BREAK_FLAG:
-                                pdb.set_trace()
                         description = self._description_from_metrics(description_display)
                         total_num_queried += num_to_query
                         total_labels += total_possible_queries

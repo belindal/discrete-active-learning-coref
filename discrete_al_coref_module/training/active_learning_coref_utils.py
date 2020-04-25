@@ -419,7 +419,7 @@ def query_user_labels_mention(
     return edge, edge_ask, indA_edge_ask
 
 
-def find_next_most_uncertain_pairwise_edge(selector, model_labels, output_dict, queried_edges_mask, DEBUG_BREAK_FLAG=False):
+def find_next_most_uncertain_pairwise_edge(selector, model_labels, output_dict, queried_edges_mask):
     if selector == 'random':
         # choose random one which hasn't been queried before
         nonqueried_edges = (~queried_edges_mask).nonzero()
@@ -465,7 +465,6 @@ def find_next_most_uncertain_mention_unclustered(selector, model_labels, output_
     model_labels: batch x num_spans tensor detailing cluster ID of cluster each span belongs to, according to model edges
     and user corrections. IMPORTANT: indexes into TOP_SPANS, not all spans.
     '''
-    DEBUG_FLAG = False
     coref_scores_mask = output_dict['coreference_scores'] != -float("inf")
     mention_confidence_scores = torch.zeros(output_dict['top_spans'].size()[:2], dtype=torch.float,
                                             device=model_labels.device)
@@ -492,17 +491,6 @@ def find_next_most_uncertain_mention_unclustered(selector, model_labels, output_
             ant_vote_entropy[ant_vote_entropy != ant_vote_entropy] = 0
             ant_vote_entropy = ant_vote_entropy.sum(-1)
             mention_confidence_scores[b] += -ant_vote_entropy
-            if DEBUG_FLAG:
-                for ant in range(model_pred_ants.size(-1)):
-                    votes = torch.zeros(model_pred_ants[:,ant].max() + 1, device=model_pred_ants.device, dtype=torch.long)
-                    for i in range(len(votes)):
-                        votes[i] = (model_pred_ants[:,ant] == i).sum()
-                    votes = votes.float() / num_models
-                    entropy = votes * votes.log()
-                    entropy[entropy != entropy] = 0
-                    entropy = -entropy.sum()
-                    if entropy != mention_confidence_scores[b, ant]:
-                        pdb.set_trace()
         else:
             clustered_mask = output_dict['predicted_antecedents'] != -1  # mask for mentions selected antecedents in
                                                                          # clusters
@@ -542,8 +530,7 @@ def find_next_most_uncertain_mention_unclustered(selector, model_labels, output_
 
 
 """ FOR CLUSTERED, DISCRETE SELECTION """
-def find_next_most_uncertain_mention(selector, model_labels, output_dict, queried_mentions_mask, verify_existing=None,
-                                     DEBUG_BREAK_FLAG=False):
+def find_next_most_uncertain_mention(selector, model_labels, output_dict, queried_mentions_mask, verify_existing=None):
     '''
     model_labels: batch x num_spans tensor detailing cluster ID of cluster each span belongs to, according to model edges
     and user corrections. IMPORTANT: indexes into TOP_SPANS, not all spans.
@@ -620,12 +607,6 @@ def find_next_most_uncertain_mention(selector, model_labels, output_dict, querie
                 ant_vote_entropy[ant_vote_entropy != ant_vote_entropy] = 0
                 ant_vote_entropy = ant_vote_entropy.sum(-1)
                 mention_confidence_scores[b] += -ant_vote_entropy
-                if DEBUG_BREAK_FLAG:
-                    torch.save(mention_confidence_scores, "mention_confidence_scores.txt")
-                    torch.save(output_dict['coreference_scores_models'], "coref_scores_models.txt")
-                    torch.save(output_dict['coreference_scores'], "coref_scores.txt")
-                    torch.save(model_output_mention_pair_clusters, "mention_clusters.txt")
-                    os.system("python verify_qbc_scorer.py")
             else:
                 predicted_antecedents = output_dict['predicted_antecedents'][b].unsqueeze(-1).expand_as(
                     model_output_mention_pair_clusters) + 1
@@ -692,15 +673,14 @@ def find_next_most_uncertain_mention(selector, model_labels, output_dict, querie
                         # scores for mentions w/out antecedents: Max of these
                         mention_confidence_scores[b][~clustered_mask] = non_cluster_mention_score.max(-1)[0]
                         opt_score = mention_confidence_scores[b][~clustered_mask][~queried_mentions_mask[b][~clustered_mask]].max()
-    if DEBUG_BREAK_FLAG and len(clustered_mask.nonzero()) > 0:
-        torch.save(mention_confidence_scores, "mention_confidence_scores.txt")
-        torch.save(coreference_probs, "coreference_probs.txt")
-        torch.save(model_output_mention_pair_clusters, "model_output_mention_pair_clusters.txt")
-        os.system("python verify_scorer.py")
     if selector == 'entropy' or selector == 'qbc':
         opt_score = mention_confidence_scores.max()
     # choose arbitrary unchosen, least-confident mention
-    batch_and_mentions = ((mention_confidence_scores == opt_score) & ~queried_mentions_mask).nonzero()
+    try:
+        batch_and_mentions = ((mention_confidence_scores == opt_score) & ~queried_mentions_mask).nonzero()
+    except:
+        import pdb
+        pdb.set_trace()
     # check if edge belongs to
     try:
         assert (len(batch_and_mentions) > 0)
@@ -712,7 +692,7 @@ def find_next_most_uncertain_mention(selector, model_labels, output_dict, querie
 
 # incremental closure
 def get_link_closures_edge(must_link, cannot_link, edge, should_link=False, must_link_labels=None, output_dict=None,
-                           translation_reference=None, DEBUG_FLAG=True):
+                           translation_reference=None):
     # ensure edge is valid
     if should_link and edge[1] == edge[2]:
         top_ind_edge = (translation_reference[edge[0]] == edge[1]).nonzero().item()
@@ -891,25 +871,6 @@ def get_link_closures_edge(must_link, cannot_link, edge, should_link=False, must
             if 'coreference_scores_models' in output_dict:
                 output_dict['coreference_scores_models'][:, non_coref_pairs[:,0], non_coref_pairs[:,1],
                                                          non_coref_pairs[:,2] + 1] = -float("inf")
-
-    # check we have the complete set:
-    if DEBUG_FLAG:
-        if should_link:
-            must_link = torch.cat([must_link, edge.unsqueeze(0)])
-        else:
-            cannot_link = torch.cat([cannot_link, edge.unsqueeze(0)])
-        must_link_closure_2, cannot_link_closure_2 = get_link_closures(must_link, cannot_link)
-        try:
-            assert must_link_closure.size(0) == must_link_closure_2.size(0)
-            assert cannot_link_closure.size(0) == cannot_link_closure_2.size(0)
-            if must_link_closure.size(0) > 0:
-                m = (must_link_closure.unsqueeze(1).unsqueeze(-1) == must_link_closure_2.unsqueeze(1))
-                assert (((m.sum(-1) >= 1).sum(-1) >= 3) & ((m.sum(-2) >= 1).sum(-1) >= 3)).nonzero().size(0) == must_link_closure.size(0)
-            if cannot_link_closure.size(0) > 0:
-                m = (cannot_link_closure.unsqueeze(1).unsqueeze(-1) == cannot_link_closure_2.unsqueeze(1))
-                assert (((m.sum(-1) >= 1).sum(-1) >= 3) & ((m.sum(-2) >= 1).sum(-1) >= 3)).nonzero().size(0) == cannot_link_closure.size(0)
-        except:
-            pdb.set_trace()
 
     return must_link_closure, cannot_link_closure, must_link_labels, output_dict
 
