@@ -981,8 +981,6 @@ class ALCorefTrainer(TrainerBase):
             # 1. evaluate on held-out training data
             # 2. use active learning/gold labels to confirm/deny labels on held-out training data
             # 3. add correct instances in held-out training data to actual train data, then re-train
-            import pdb
-            pdb.set_trace()
             if self._do_active_learning and len(self._held_out_train_data) > 0 and query_this_epoch:
                 # take a subset of training data to evaluate on, and add to actual training set
                 train_data_to_add = self._held_out_train_data[:280]
@@ -1085,8 +1083,6 @@ class ALCorefTrainer(TrainerBase):
 
                             num_queried = 0
                             num_coreferent = 0
-                            import pdb
-                            pdb.set_trace()
                             while num_queried < num_to_query:
                                 if self._discrete_query_time_info is not None and self._discrete_query_time_diff >= 0:
                                     break
@@ -1121,7 +1117,6 @@ class ALCorefTrainer(TrainerBase):
                                 # the case--the only thing that matters is that it has a value that it is 100% confident of)
                                 queried_mentions_mask[mention[0], mention[1]] = 1
 
-                                pdb.set_trace()
                                 # If asked edge was deemed not coreferent, delete it
                                 if indA_edge_asked[2] != indA_edge[2]:
                                     if len(indA_model_edges) > 0:
@@ -1137,8 +1132,6 @@ class ALCorefTrainer(TrainerBase):
                                     else:
                                         confirmed_non_coref_edges = torch.cat(
                                             (confirmed_non_coref_edges, indA_edge_asked.unsqueeze(0)), dim=0)
-                                    import pdb
-                                    pdb.set_trace()
                                     batch['must_link'], batch['cannot_link'], confirmed_clusters, output_dict = \
                                         al_util.get_link_closures_edge(batch['must_link'], batch['cannot_link'],
                                                                         indA_edge_asked, False,
