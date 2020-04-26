@@ -796,26 +796,21 @@ class ALCorefTrainer(TrainerBase):
         self._enable_activation_logging()
 
         if self._do_active_learning:
-            # save initial model state to retrain from scratch every iteration
-            # TODO: have this specified by user, and make the directory when necessary
+            # save initial model state to retrain from scratch
             if self._selector == 'qbc':
-                dirname = "active_learning_model_states_ensemble_" + str(self._cuda_devices[0])
                 init_model_state = self.ensemble_model.state_dict()
                 init_optimizer_state = [optimizer.state_dict() for optimizer in self.ensemble_optimizer]
                 init_lr_scheduler_state = [scheduler.lr_scheduler.state_dict() for scheduler in self.ensemble_scheduler]
             else:
-                dirname = "active_learning_model_states_" + str(self._cuda_devices[0])
                 init_model_state = self.model.state_dict()
                 init_optimizer_state = self.optimizer.state_dict()
                 init_lr_scheduler_state = self._learning_rate_scheduler.lr_scheduler.state_dict()
-            init_model_path = os.path.join(dirname, "init_model_state.th")
-            init_optimizer_path = os.path.join(dirname, "init_optimizer_state.th")
-            init_lr_scheduler_path = os.path.join(dirname, "init_lr_scheduler_state.th")
-            if not os.path.exists(dirname):
-                os.makedirs(dirname)
-                torch.save(init_model_state, init_model_path)
-                torch.save(init_optimizer_state, init_optimizer_path)
-                torch.save(init_lr_scheduler_state, init_lr_scheduler_path)
+            init_model_path = os.path.join(self._serialization_dir, "init_model_state.th")
+            init_optimizer_path = os.path.join(self._serialization_dir, "init_optimizer_state.th")
+            init_lr_scheduler_path = os.path.join(self._serialization_dir, "init_lr_scheduler_state.th")
+            torch.save(init_model_state, init_model_path)
+            torch.save(init_optimizer_state, init_optimizer_path)
+            torch.save(init_lr_scheduler_state, init_lr_scheduler_path)
 
         self._finished_training_eval_ensemble = False
         if self._selector == 'qbc' and self._finished_training_eval_ensemble:
@@ -824,7 +819,7 @@ class ALCorefTrainer(TrainerBase):
             with torch.no_grad():
                 # evaluate ensemble of BEST models at this epoch
                 for i in range(len(self.ensemble_model.submodels)):
-                    submodel_path = os.path.join(dirname, "best_submodel_" + str(i) + "_state.th")
+                    submodel_path = os.path.join(self._serialization_dir, "best_submodel_" + str(i) + "_state.th")
                     submodel_state = torch.load(submodel_path, map_location=util.device_mapping(-1))
                     self.ensemble_model.submodels[i].load_state_dict(submodel_state)
                 self.model = self.ensemble_model
@@ -930,14 +925,14 @@ class ALCorefTrainer(TrainerBase):
                 for key, value in val_metrics.items():
                     metrics["best_validation_" + key] = value
                 # save the best model (already incremented self.model_idx, so -1 here)
-                submodel_path = os.path.join(dirname, "best_submodel_" + str(self.model_idx) + "_state.th")
+                submodel_path = os.path.join(self._serialization_dir, "best_submodel_" + str(self.model_idx) + "_state.th")
                 torch.save(self.model.state_dict(), submodel_path)
 
             if self._validation_data is not None and eval_ensemble:
                 with torch.no_grad():
                     # evaluate ensemble of BEST models at this epoch
                     for i in range(len(self.ensemble_model.submodels)):
-                        submodel_path = os.path.join(dirname, "best_submodel_" + str(i) + "_state.th")
+                        submodel_path = os.path.join(self._serialization_dir, "best_submodel_" + str(i) + "_state.th")
                         submodel_state = torch.load(submodel_path, map_location=util.device_mapping(-1))
                         self.ensemble_model.submodels[i].load_state_dict(submodel_state)
                     self.model = self.ensemble_model

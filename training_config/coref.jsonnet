@@ -119,6 +119,7 @@
     "optimizer": {
       "type": "adam"
     },
+    "num_serialized_models_to_keep": -1,
     "active_learning": {
       "epoch_interval": 20,
       "use_percent": true,
