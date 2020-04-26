@@ -11,12 +11,13 @@ from allennlp.data import Vocabulary
 from allennlp.models.model import Model
 from allennlp.modules.token_embedders import Embedding
 from allennlp.modules import FeedForward
-from allennlp.modules import Seq2SeqEncoder, TimeDistributed, TextFieldEmbedder, Pruner
+from allennlp.modules import Seq2SeqEncoder, TimeDistributed, TextFieldEmbedder
 from allennlp.modules.span_extractors import SelfAttentiveSpanExtractor, EndpointSpanExtractor
 from allennlp.nn import util, InitializerApplicator, RegularizerApplicator
 from allennlp.training.metrics import MentionRecall, ConllCorefScores
 
 from discrete_al_coref_module.training import active_learning_coref_utils as al_util
+from discrete_al_coref_module.models.pruner import Pruner
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
@@ -194,15 +195,21 @@ class ALCoreferenceResolver(Model):
                 # Prune based on mention scores.
                 num_spans_to_keep = int(math.floor(self._spans_per_word * document_length))
 
+                # get mention scores
+                span_mention_scores = \
+                    self._mention_pruner(span_embeddings, span_mask, spans.size(1), True)
+
+                if return_mention_scores:
+                    output_dict = {'num_spans_to_keep': num_spans_to_keep, 'mention_scores': span_mention_scores,
+                                   'mask': span_mask.unsqueeze(-1), 'embeds': span_embeddings, 'text_mask': text_mask}
+                    return output_dict
+
                 (top_span_embeddings, top_span_mask,
                  top_span_indices, top_span_mention_scores) = self._mention_pruner(span_embeddings,
                                                                                    span_mask,
-                                                                                   num_spans_to_keep)
-
-                if return_mention_scores:
-                    output_dict = {'num_spans_to_keep': num_spans_to_keep, 'mention_scores': top_span_mention_scores,
-                                   'mask': top_span_mask.unsqueeze(-1), 'embeds': top_span_embeddings, 'text_mask': text_mask}
-                    return output_dict
+                                                                                   num_spans_to_keep,
+                                                                                   False,
+                                                                                   span_mention_scores)
 
                 top_span_mask = top_span_mask.unsqueeze(-1)
                 # Shape: (batch_size * num_spans_to_keep)
