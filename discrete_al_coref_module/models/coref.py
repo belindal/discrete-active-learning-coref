@@ -18,11 +18,10 @@ from allennlp.training.metrics import MentionRecall, ConllCorefScores
 
 from discrete_al_coref_module.training import active_learning_coref_utils as al_util
 
-import pdb
-
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 DEBUG_FLAG = False
+
 
 @Model.register("al_coref")
 class ALCoreferenceResolver(Model):

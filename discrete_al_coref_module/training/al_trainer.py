@@ -44,7 +44,6 @@ from allennlp.training.trainer_base import TrainerBase
 from discrete_al_coref_module.dataset_readers.pair_field import PairField
 from discrete_al_coref_module.training import active_learning_coref_utils as al_util
 
-import pdb
 import random
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
@@ -310,7 +309,7 @@ class ALCorefTrainer(TrainerBase):
         self._held_out_train_data = held_out_train_dataset
         self._discrete_query_time_info = None
         self._discrete_query_time_diff = 0  # our time - standard time
-        self._equal_time_flag = False  # TODO don't hardcode
+        self._equal_time_flag = True  # TODO don't hardcode
         if self._equal_time_flag:
             if os.path.exists(SAVED_DISCRETE_TIMES_FILE.format(active_learning['num_labels'])):
                 with open(SAVED_DISCRETE_TIMES_FILE.format(active_learning['num_labels'])) as f:

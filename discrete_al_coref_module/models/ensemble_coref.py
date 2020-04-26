@@ -11,7 +11,6 @@ from allennlp.training.metrics import MentionRecall, ConllCorefScores
 from allennlp.nn import util
 
 from discrete_al_coref_module.models.coref import ALCoreferenceResolver
-import pdb
 
 
 @Model.register("coref-ensemble")

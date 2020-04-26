@@ -9,7 +9,7 @@ import json
 
 import torch
 
-from allennlp.commands.evaluate import evaluate
+from allennlp.training.util import evaluate
 from allennlp.commands.subcommand import Subcommand
 from allennlp.common.checks import ConfigurationError, check_for_gpu
 from allennlp.common import Params
@@ -272,7 +272,6 @@ def train_model(params: Params,
                                                                 validation_iterator=validation_iterator,
                                                                 held_out_iterator=held_out_iterator,
                                                                 ensemble_model=ensemble_model)
-
     evaluate_on_test = params.pop_bool("evaluate_on_test", False)
     params.assert_empty('base train command')
 
@@ -295,23 +294,16 @@ def train_model(params: Params,
     best_model_state = torch.load(best_model_state_path)
     best_model = model
     best_model.load_state_dict(best_model_state)
-
+    
     if test_data and evaluate_on_test:
         logger.info("The model will be evaluated using the best epoch weights.")
         test_metrics = evaluate(
-                best_model, test_data, validation_iterator or iterator,
-                cuda_device=trainer._cuda_devices[0] # pylint: disable=protected-access
+            best_model, test_data, validation_iterator or iterator,
+            cuda_device=trainer._cuda_devices[0],
+            batch_weight_key="",
         )
         for key, value in test_metrics.items():
             metrics["test_" + key] = value
-    '''
-    elif test_data:
-        logger.info("To evaluate on the test set after training, pass the "
-                    "'evaluate_on_test' flag, or use the 'allennlp evaluate' command.")
-
-    dump_metrics(os.path.join(serialization_dir, "metrics.json"), metrics, log=True)
-
-    '''
     return best_model, metrics, query_info
 
 # In practice you'd probably do this from the command line:
@@ -353,10 +345,6 @@ def main(cuda_device, testing=False, testing_vocab=False, experiments=None, pair
             serialization_dir = os.path.join(save_dir, "checkpoint_" + str(x))
             os.system('rm -rf ' + serialization_dir)
             params = Params.from_file(os.path.join(save_dir, 'coref.jsonnet'))
-            # restore data file
-            saved_data_file = '../data/saved_data_' + str(selector) + '_' + str(num_ensemble_models) + '_' + str(x) + '.th'
-            if os.path.exists(saved_data_file):
-                params['dataset_reader']['saved_data_file'] = saved_data_file
             params.params['trainer']['cuda_device'] = cuda_device
             params.params['trainer']['active_learning']['save_al_queries'] = args.save_al_queries
             params.params['trainer']['active_learning']['query_type'] = "pairwise" if pairwise else "discrete"
