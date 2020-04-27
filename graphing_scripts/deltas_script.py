@@ -13,9 +13,19 @@ GRAPH_TIME_CUTOFF = 75
 plt.rcParams.update({'font.size': 14})
 plt.rc('xtick', labelsize=12)
 plt.rc('ytick', labelsize=12)
+fig, ax = plt.subplots()
 
 discrete_dir = ["discrete_entropy", "pairwise_entropy"]
 avg_deltas = []
+
+
+def mpd_to_hrs(x):
+    return x * 2102 / 60
+
+
+def hrs_to_mpd(x):
+    return x * 60 / 2102
+
 
 for selector_fn in discrete_dir:
     pair_or_not = selector_fn[:len(selector_fn)-len("_entropy")]
@@ -49,13 +59,17 @@ for selector_fn in discrete_dir:
         sum_deltas += deltas[time]
     print(sum_deltas / (len(deltas) - 1))  # -1 for 0 data point
     avg_deltas.append(sum_deltas / (len(deltas) - 1))
-    plt.plot(*zip(*sorted(deltas.items())), label=pair_or_not + " (" + selector + ")", marker='o')
+    ax.plot(*zip(*sorted(deltas.items())), label=pair_or_not + " (" + selector + ")", marker='o')
 
 print("")
 print(avg_deltas[0] / avg_deltas[1])
 
-plt.xlabel("Total annotation time (mins / doc)")
-plt.ylabel("Average ΔF1")
+ax.set_xlabel("Annotation time (mins / doc)")
+ax.set_ylabel("Average ΔF1")
+
+secax = ax.secondary_xaxis('top', functions=(mpd_to_hrs, hrs_to_mpd))
+secax.set_xlabel('Total annotation time (hrs)', fontsize=14)
+
 plt.legend()
 plt.show()
 

@@ -14,6 +14,7 @@ GRAPH_TIME_CUTOFF = 75
 plt.rcParams.update({'font.size': 11})
 plt.rc('xtick', labelsize=12)
 plt.rc('ytick', labelsize=12)
+fig, ax = plt.subplots()
 
 
 pairwise_dir = ["pairwise_entropy"] #, "allennlp/pairwise_random/"]
@@ -28,6 +29,15 @@ discrete_dir_2 = ["discrete_random2"]
 discrete_dir_2_map = {'0': 0, '20': 35345, '40': 68102, '60': 98773, '80': 128481, '100': 156805, '120': 183362,
                       '140': 206731, '160': 228176, '180': 249807, '200': 267001, '140_actual': 288114,
                       '160_actual': 318120, '180_actual': 349339, '200_actual': 373400}
+
+
+def mpd_to_hrs(x):
+    return x * 2102 / 60
+
+
+def hrs_to_mpd(x):
+    return x * 60 / 2102
+
 
 discrete_times = {}
 for selector_fn in discrete_dir:
@@ -72,18 +82,18 @@ for selector_fn in discrete_dir:
     print(discrete_results)
     print(discrete_times)
     if selector[:3] == 'qbc':
-        plt.plot(*zip(*sorted(discrete_results.items())),
-                 label="discrete (" + selector[:3] + ", " + selector[3:] + " models)", marker='o', color='C2')
+        ax.plot(*zip(*sorted(discrete_results.items())),
+                label="discrete (" + selector[:3] + ", " + selector[3:] + " models)", marker='o', color='C2')
     elif selector == 'score':
-        plt.plot(*zip(*sorted(discrete_results.items())),
-                 label="discrete (LCC/MCU)", marker='o', color='C3')
+        ax.plot(*zip(*sorted(discrete_results.items())),
+                label="discrete (LCC/MCU)", marker='o', color='C3')
     elif selector == 'random':
-        plt.plot(*zip(*sorted(discrete_results.items())), label="discrete (" + selector + ", partially labelled)",
-                 marker='o', color='k', alpha=0.5)
+        ax.plot(*zip(*sorted(discrete_results.items())), label="discrete (" + selector + ", partially labelled)",
+               marker='o', color='k', alpha=0.5)
     else:
-        #plt.plot(*zip(*sorted(only_discrete_results.items())),
+        #ax.plot(*zip(*sorted(only_discrete_results.items())),
         #         label="discrete ONLY (" + selector + ")", marker='o', color='C2')
-        plt.plot(*zip(*sorted(discrete_results.items())), label="discrete (" + selector + ")", marker='o')
+        ax.plot(*zip(*sorted(discrete_results.items())), label="discrete (" + selector + ")", marker='o')
 
 for selector_fn in discrete_dir_2:
     selector = selector_fn[len("discrete_"):len(selector_fn)]
@@ -102,9 +112,9 @@ for selector_fn in discrete_dir_2:
 
     print("discrete random 2")
     print(discrete_results)
-    plt.plot(*zip(*sorted(discrete_results.items())), '--', label="discrete (" + selector[:len(selector)-1] +
+    ax.plot(*zip(*sorted(discrete_results.items())), '--', label="discrete (" + selector[:len(selector)-1] +
                                                                   ", fully labelled)", marker='o',
-             color='k', alpha=0.5)
+           color='k', alpha=0.5)
 
 pairwise_times = {}
 for selector_fn in pairwise_dir:
@@ -127,14 +137,17 @@ for selector_fn in pairwise_dir:
     print("pair " + selector)
     print(pairwise_results)
     print(pairwise_times)
-    plt.plot(*zip(*sorted(pairwise_results.items())),
-             '--',
-             label="pairwise (" + selector + ")", marker='o', color='C1',
-             alpha=0.5)
+    ax.plot(*zip(*sorted(pairwise_results.items())),
+            '--',
+            label="pairwise (" + selector + ")", marker='o', color='C1',
+            alpha=0.5)
 
-#plt.plot(*zip(*sorted(discrete_qbc_results.items())), label="discrete (3-model qbc over clusters)", marker='o')
-plt.xlabel("Total annotation time (mins / doc)", fontsize=14)
-plt.ylabel("F1 score", fontsize=14)
+#ax.plot(*zip(*sorted(discrete_qbc_results.items())), label="discrete (3-model qbc over clusters)", marker='o')
+ax.set_xlabel("Annotation time (mins / doc)", fontsize=14)
+ax.set_ylabel("F1 score", fontsize=14)
 plt.legend()
+
+secax = ax.secondary_xaxis('top', functions=(mpd_to_hrs, hrs_to_mpd))
+secax.set_xlabel('Total annotation time (hrs)', fontsize=14)
 plt.show()
 
