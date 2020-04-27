@@ -122,7 +122,6 @@
     "num_serialized_models_to_keep": -1,
     "active_learning": {
       "epoch_interval": 20,
-      "use_percent": true,
       "num_labels": 1,
       "simulate_user_inputs": true, // have to update in 2 places
       "save_al_queries": false,

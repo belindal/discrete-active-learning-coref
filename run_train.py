@@ -264,6 +264,10 @@ def main(args):
             print("Running with {} labels per doc".format(x))
             serialization_dir = os.path.join(save_dir, "checkpoint_{}".format(x))
 
+            if os.path.exists(serialization_dir):
+                print("Deleting existing directory: {}".format(serialization_dir))
+                shutil.rmtree(serialization_dir)
+
             # modify parameters according to passed-in arguments
             params = Params.from_file("training_config/coref.jsonnet")
             params.params['trainer']['cuda_device'] = args.cuda_device

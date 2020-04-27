@@ -15,8 +15,6 @@ from allennlp.data.dataset_readers.dataset_utils import Ontonotes, enumerate_spa
 
 from discrete_al_coref_module.dataset_readers.pair_field import PairField
 
-import pdb
-
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
