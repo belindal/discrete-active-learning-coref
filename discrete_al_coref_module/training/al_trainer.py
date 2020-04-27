@@ -309,7 +309,7 @@ class ALCorefTrainer(TrainerBase):
         self._held_out_train_data = held_out_train_dataset
         self._discrete_query_time_info = None
         self._discrete_query_time_diff = 0  # our time - standard time
-        self._equal_time_flag = True  # TODO don't hardcode
+        self._equal_time_flag = False  # TODO don't hardcode
         if self._equal_time_flag:
             if os.path.exists(SAVED_DISCRETE_TIMES_FILE.format(active_learning['num_labels'])):
                 with open(SAVED_DISCRETE_TIMES_FILE.format(active_learning['num_labels'])) as f:
