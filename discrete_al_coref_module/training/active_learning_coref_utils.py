@@ -275,7 +275,7 @@ def get_sorted_masked_edges(selector, coreference_mask, output_dict, all_spans, 
 """ Pairwise """
 def query_user_labels_pairwise(
     edge, output_dict, all_spans, user_labels, translation_reference=None,
-    save_al_queries=False, batch=None, save_dir=None, existing_span_clusters=None,
+    save_al_queries=False, batch=None, save_file=None, existing_span_clusters=None,
 ):
     indA_edge = translate_to_indA(edge.unsqueeze(0), output_dict, all_spans, translation_reference).squeeze()
     proform_label = user_labels[indA_edge[0], indA_edge[1]]
@@ -283,18 +283,15 @@ def query_user_labels_pairwise(
     # proform and antecedent both belong to a cluster, and it is the same cluster
     coreferent = (proform_label == antecedent_label) & (proform_label != -1)
     if save_al_queries:
-        assert save_dir is not None
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
+        assert save_file is not None
         # print this example to document
         try:
-            num_lines = sum(1 for line in open(os.path.join(save_dir, 'pairwise_examples.json'), 'r'))
+            num_lines = sum(1 for line in open(save_file, 'r'))
         except:
             num_lines = 0
         assert batch is not None
-        # af = open(os.path.join(save_dir, "pairwise_answers.txt"), 'a')
         # print this example to document
-        with open(os.path.join(save_dir, "pairwise_examples.json"), 'a') as f:
+        with open(save_file, 'a') as f:
             for i, tokens in enumerate(output_dict['document']):
                 if num_lines > 10000:
                     break
@@ -310,23 +307,6 @@ def query_user_labels_pairwise(
                     new_antecedent = batch['spans'][edge[0], edge[2]]
                     output_json["coreferent"].append(new_antecedent.tolist())
                 f.write(json.dumps(output_json) + "\n")
-                # tokens_2 = copy.deepcopy(tokens)
-                # proform = batch['spans'][indA_edge[0], indA_edge[1]]
-                # antecedent = batch['spans'][indA_edge[0], indA_edge[2]]
-                # tokens_2[proform[0]] = '\x1b[6;30;47m' + tokens_2[proform[0]]
-                # tokens_2[proform[1]] += '\x1b[0m'
-                # tokens_2[antecedent[0]] = '\x1b[6;30;42m' + tokens_2[antecedent[0]]
-                # tokens_2[antecedent[1]] += '\x1b[0m'
-                # text = "".join([" "+i if not i.startswith("'") and i not in string.punctuation else i for i in tokens_2]).strip()
-                # f.write(text + "\n")
-                # af.write(str(bool(coreferent)))
-                # if not coreferent and edge[2] != -1:
-                #     new_antecedent = batch['spans'][edge[0], edge[2]]
-                #     af.write("\t")
-                #     for ind in range(new_antecedent[0], new_antecedent[1] + 1):
-                #         af.write(" " + tokens[ind])
-                #     af.write("\t" + str(new_antecedent.tolist()))
-                # af.write("\n")
                 num_lines += 1
     return coreferent, indA_edge
 
@@ -334,7 +314,7 @@ def query_user_labels_pairwise(
 def query_user_labels_mention(
     mention, output_dict, all_spans, user_labels,
     translation_reference=None, save_al_queries=False, batch=None,
-    save_dir=None, existing_span_clusters=None,
+    save_file=None, existing_span_clusters=None,
 ):
     # returns:
     # 1. edge: indA of edge, if coreferent, will be identical to indA_edge_ask, otherwise,
@@ -363,15 +343,13 @@ def query_user_labels_mention(
             if edge[1] == edge[2]:
                 edge[2] = -1
     if save_al_queries:
-        assert save_dir is not None
-        if not os.path.exists(save_dir):
-            os.makedirs(save_dir)
+        assert save_file is not None
         try:
-            num_lines = sum(1 for line in open(os.path.join(save_dir, 'discrete_examples.json'), 'r'))
+            num_lines = sum(1 for line in open(save_file, 'r'))
         except:
             num_lines = 0
         assert batch is not None
-        with open(os.path.join(save_dir, "discrete_examples.json"), 'a') as f:
+        with open(save_file, 'a') as f:
             for i, tokens in enumerate(output_dict['document']):
                 if num_lines > 10000:
                     break
@@ -387,32 +365,6 @@ def query_user_labels_mention(
                     new_antecedent = batch['spans'][edge[0], edge[2]]
                     output_json["coreferent"].append(new_antecedent.tolist())
                 f.write(json.dumps(output_json) + "\n")
-                # tokens_2 = copy.deepcopy(tokens)
-        # af = open(os.path.join(save_dir, "discrete_answers.txt"), 'a')
-        # print this example to document
-        # with open(os.path.join(save_dir, "discrete_examples.json"), 'a') as f:
-        #     for i, tokens in enumerate(output_dict['document']):
-        #         if num_lines > 10000:
-        #             break
-        #         tokens_2 = copy.deepcopy(tokens)
-        #         proform = batch['spans'][indA_edge_ask[0], indA_edge_ask[1]]
-        #         antecedent = batch['spans'][indA_edge_ask[0], indA_edge_ask[2]]
-        #         tokens_2[proform[0]] = '\x1b[6;30;47m' + tokens_2[proform[0]]
-        #         tokens_2[proform[1]] += '\x1b[0m'
-        #         tokens_2[antecedent[0]] = '\x1b[6;30;42m' + tokens_2[antecedent[0]]
-        #         tokens_2[antecedent[1]] += '\x1b[0m'
-        #         text = "".join([" "+i if not i.startswith("'") and i not in string.punctuation else i for i in tokens_2]).strip()
-        #         f.write(text + "\n")
-        #         af.write(str(bool(coreferent)))
-        #         if not coreferent and edge[2] != -1:
-        #             new_antecedent = batch['spans'][edge[0], edge[2]]
-        #             af.write("\t")
-        #             for ind in range(new_antecedent[0], new_antecedent[1] + 1):
-        #                 af.write(" " + tokens[ind])
-        #             af.write("\t" + str(new_antecedent.tolist()))
-        #         af.write("\n")
-        #         num_lines += 1
-        # af.close()
 
     return edge, edge_ask, indA_edge_ask
 
@@ -442,7 +394,7 @@ def find_next_most_uncertain_pairwise_edge(selector, model_labels, output_dict, 
         # avoid choosing 1st column
         edge_confidence_scores = edge_entropies[:, :, 1:]
     elif selector == 'qbc':  # TODO qbc selector
-        pdb.set_trace()
+        raise NotImplementedError("QBC unsupported for pairwise annotation")
 
     if selector == 'entropy' or selector == 'qbc':
         opt_score = edge_confidence_scores.max()

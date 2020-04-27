@@ -878,9 +878,11 @@ class ALCorefTrainer(TrainerBase):
                         is_best_so_far = self._is_best_so_far(this_epoch_val_metric, validation_metric_per_epoch)
                     validation_metric_per_epoch.append(this_epoch_val_metric)
 
-                    # check convergence
+                    # check convergence (determine whether or not to query this epoch)
                     if self._do_active_learning and len(self._held_out_train_data) > 0:
-                        if self._should_stop_early(validation_metric_per_epoch[first_epoch_for_converge:], self._active_learning_patience) or (epoch - first_epoch_for_converge >= self._active_learning_epoch_interval):
+                        if self._should_stop_early(
+                            validation_metric_per_epoch[first_epoch_for_converge:], self._active_learning_patience
+                        ) or (epoch - first_epoch_for_converge >= self._active_learning_epoch_interval):
                             logger.info("Ran out of patience on model " + str(self.model_idx))
                             if self._selector == 'qbc':
                                 first_epoch_for_converge = epoch + 1
@@ -892,7 +894,8 @@ class ALCorefTrainer(TrainerBase):
                                 logger.info("Evaluating ensemble and adding more data.")
                     else:
                         if self._should_stop_early(validation_metric_per_epoch[first_epoch_for_converge:], self._patience) or (
-                            submodel_val_metrics is not None and len(submodel_val_metrics[self.model_idx]) >= self._num_epochs):
+                            submodel_val_metrics is not None and len(submodel_val_metrics[self.model_idx]) >= self._num_epochs
+                        ):
                             logger.info("Ran out of patience on model " + str(self.model_idx))
                             if self._selector == 'qbc':
                                 first_epoch_for_converge = epoch + 1
@@ -901,6 +904,8 @@ class ALCorefTrainer(TrainerBase):
                                 eval_ensemble = (self._selector == 'qbc')
                                 logger.info("Evaluating ensemble and stopping training.")
                                 all_finished = True
+                    # TODO
+                    # query_this_epoch |= (loaded_init_converged and epoch == 0)  # loaded the initial converged model
             else:
                 # No validation set, so just assume it's the best so far.
                 is_best_so_far = True
@@ -1099,7 +1104,7 @@ class ALCorefTrainer(TrainerBase):
                                     al_util.query_user_labels_mention(mention, output_dict, batch['spans'],
                                                                         batch['user_labels'], translation_reference,
                                                                         self._save_al_queries, batch,
-                                                                        os.path.join(self._serialization_dir, "saved_queries_epoch_{}".format(epoch)),
+                                                                        os.path.join(self._serialization_dir, "saved_queries_epoch_{}.json".format(epoch)),
                                                                         batch['span_labels'])
                                 if indA_edge_asked[2] == indA_edge[2]:
                                     self._discrete_query_time_diff += PAIRWISE_Q_TIME
@@ -1183,7 +1188,7 @@ class ALCorefTrainer(TrainerBase):
                                     al_util.query_user_labels_pairwise(edge, output_dict, batch['spans'],
                                                                         batch['user_labels'], translation_reference,
                                                                         self._save_al_queries, batch,
-                                                                        os.path.join(self._serialization_dir, "saved_queries_epoch_{}".format(epoch)),
+                                                                        os.path.join(self._serialization_dir, "saved_queries_epoch_{}.json".format(epoch)),
                                                                         batch['span_labels'])
                                 queried_edges_mask[edge[0], edge[1], edge[2] + 1] = 1
                                 # arbitrarily set to null antecedent

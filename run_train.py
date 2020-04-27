@@ -316,24 +316,7 @@ def main(cuda_device, testing=False, testing_vocab=False, experiments=None, pair
     if hasattr(args, 'labels_to_query'):
         assert args.labels_to_query >= 0
     use_percents=False
-    if not hasattr(args, 'labels_to_query'):
-        if cuda_device == 0:
-            #percent_list = [200, 180, 160]
-            percent_list = [0]#[120, 100, 80]
-        if cuda_device == 1:
-            #percent_list = [0, 40, 140, 100]
-            percent_list = [200]#[60, 40, 140]
-        if cuda_device == 2:
-            #percent_list = [20, 120, 60, 80]
-            percent_list = [20]#[180, 160, 20]
-    else:
-        percent_list = [args.labels_to_query]
-    # if selector == 'qbc':
-    #     cuda_device = [(cuda_device + i) % 3 for i in range(3)]
-    #     os.system('rm -rf active_learning_model_states_ensemble_' + str(cuda_device))
-    # else:
-    #     cuda_device = cuda_device
-    # ''' Make training happen
+
     if experiments:
         save_dir = experiments
         if not os.path.exists(save_dir):

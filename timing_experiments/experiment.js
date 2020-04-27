@@ -99,7 +99,7 @@ function setup_experiments() {
  }
  
  function end() {
-   log_output = "<h2>You're Done! But don't close this page just yet! Please copy the following and send it to me (belindazli65 [at] gmail.com):</h2>"
+   log_output = "<h2>Congratulations! You're Done! (Below is your raw timing data:)</h2>"
    var i;
    var jsonstr = JSON.stringify([uid, saved_times]);
    log_output += "<p>" + jsonstr + "</p>";
@@ -111,7 +111,9 @@ function setup_experiments() {
    var jsonstr = JSON.stringify([uid, data, final_str]);
    // ajax the JSON to the server
    console.log(jsonstr);
-   $.post("http://128.208.5.20:8080/receiver", jsonstr, function() {
+   $.post(
+       "http://128.208.5.20:8080/receiver", // REPLACE THIS LINE WITH YOUR ADDRESS
+       jsonstr, function() {
  
    });
    // stop link reloading the page
