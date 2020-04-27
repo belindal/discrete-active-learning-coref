@@ -274,12 +274,6 @@ def main(args):
             params.params['trainer']['active_learning']['selector']['use_clusters'] = not args.no_clusters
             params.params['trainer']['active_learning']['num_labels'] = x
 
-            # overwrite config
-            json.dump(params.params, open(os.path.join(save_dir, 'coref_{}.jsonnet'.format(x))))
-
-            import pdb
-            pdb.set_trace()
-
             # train model
             best_model, metrics, query_info = train_model(params, serialization_dir, selector, num_ensemble_models, recover=False)
             dump_metrics(os.path.join(save_dir, "{}.json".format(x)), metrics, log=True)
