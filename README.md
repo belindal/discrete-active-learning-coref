@@ -9,7 +9,7 @@ This is the corresponding code for the ACL 2020 paper, *Active Learning for Core
 
 
 ## Data
-We use data from the English CoNLL-2012 coreference dataset, which you can download here: **TODO** .
+We use data from the English CoNLL-2012 coreference dataset, which can be obtained by following [this link](http://conll.cemantix.org/2012/introduction.html).
 
 **Please modify `train_data_path`, `validation_data_path`, and `test_data_path` in `training_config/coref.jsonnet` to point to your download location.**
 
@@ -78,7 +78,7 @@ Alternatively, you may check out [the demo we have set up here](https://belindal
 
 
 ## References
-To cite our paper or code, please use
+To cite our paper or code, please cite:
 ```
 TODO
 ```
