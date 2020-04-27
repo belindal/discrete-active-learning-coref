@@ -316,6 +316,7 @@ def main(cuda_device, testing=False, testing_vocab=False, experiments=None, pair
     if hasattr(args, 'labels_to_query'):
         assert args.labels_to_query >= 0
     use_percents=False
+    percent_list = [args.labels_to_query]
 
     if experiments:
         save_dir = experiments
@@ -400,7 +401,7 @@ if __name__ == "__main__":
                         help='what type of selector to use')
     parser.add_argument('--labels_to_query',
                         type=int,
-                        required=False,
+                        required=True,
                         help='labels to query per doc (n >= 0)')
     parser.add_argument("--save_al_queries",
                         action='store_true',
