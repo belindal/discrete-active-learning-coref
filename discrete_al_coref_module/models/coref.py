@@ -119,15 +119,13 @@ class ALCoreferenceResolver(Model):
                 text: Dict[str, torch.LongTensor],
                 spans: torch.IntTensor,
                 span_labels: torch.IntTensor = None,
-                user_labels: torch.IntTensor = None,
-                must_link: torch.LongTensor = None,
-                cannot_link: torch.LongTensor = None,
                 metadata: List[Dict[str, Any]] = None,
                 get_scores: bool = False,
                 top_spans_info: Dict[str, torch.IntTensor] = None,
                 coref_scores_info: Dict[str, torch.IntTensor] = None,
                 return_mention_scores: bool = False,
-                return_coref_scores: bool = False) -> Dict[str, torch.Tensor]:
+                return_coref_scores: bool = False,
+                **kwargs) -> Dict[str, torch.Tensor]:
         # pylint: disable=arguments-differ
         """
         Parameters
@@ -556,35 +554,11 @@ class ALCoreferenceResolver(Model):
         antecedent_distance_embeddings = antecedent_distance_embeddings.expand(*expanded_distance_embeddings_shape)
 
         # Shape: (batch_size, num_spans_to_keep, max_antecedents, embedding_size)
-        try:
-            span_pair_embeddings = torch.cat([target_embeddings, antecedent_embeddings,
-                                              antecedent_embeddings * target_embeddings,
-                                              antecedent_distance_embeddings], -1)
-        except:
-            try:
-                span_pair_embeddings = self._get_span_pair_embeddings(target_embeddings,
-                                                                      antecedent_embeddings,
-                                                                      antecedent_distance_embeddings)
-            except:
-                import os
-                print("Suspend process " + str(os.getpid()) + "(ctrl-z)")
-                print("Remember press enter to continue...")
-                pdb.set_trace()
-                try:
-                    span_pair_embeddings = self._get_span_pair_embeddings(target_embeddings,
-                                                                          antecedent_embeddings,
-                                                                          antecedent_distance_embeddings)
-                except:
-                    pdb.set_trace()
+        span_pair_embeddings = torch.cat([target_embeddings, antecedent_embeddings,
+                                            antecedent_embeddings * target_embeddings,
+                                            antecedent_distance_embeddings], -1)
 
         return span_pair_embeddings
-
-    @retry(stop_max_attempt_number=25)
-    def _get_span_pair_embeddings(self, target_embeddings, antecedent_embeddings, antecedent_distance_embeddings):
-        torch.cuda.empty_cache()
-        return torch.cat([target_embeddings, antecedent_embeddings,
-                          antecedent_embeddings * target_embeddings,
-                          antecedent_distance_embeddings], -1)
 
     @staticmethod
     def _compute_antecedent_gold_labels(top_span_labels: torch.IntTensor,

@@ -1,4 +1,3 @@
-import pdb
 import torch
 from allennlp.nn import util
 from collections import deque
@@ -402,10 +401,7 @@ def find_next_most_uncertain_pairwise_edge(selector, model_labels, output_dict, 
         opt_score = edge_confidence_scores.min()
     # choose arbitrary unchosen, least-confident mention
     chosen_edges = ((edge_confidence_scores == opt_score) & ~queried_edges_mask[:, :, 1:]).nonzero()
-    try:
-        assert (len(chosen_edges) > 0)
-    except:
-        pdb.set_trace()
+    assert (len(chosen_edges) > 0)
     return chosen_edges[0], opt_score
 
 
@@ -452,10 +448,7 @@ def find_next_most_uncertain_mention_unclustered(selector, model_labels, output_
                 assert verify_existing is not None
                 # scores for mentions with antecedents (which are possibly clustered with other antecedents)
                 if verify_existing and (~queried_mentions_mask[clustered_mask]).sum() > 0:
-                    try:
-                        assert len(clustered_mask.nonzero()) > 0
-                    except:
-                        pdb.set_trace()
+                    assert len(clustered_mask.nonzero()) > 0
                     # get rows of those in selected clusters, add scores
                     mention_confidence_scores[clustered_mask] = coreference_probs[clustered_mask[b]][torch.arange(
                         0, len(clustered_mask.nonzero())), (output_dict['predicted_antecedents'][clustered_mask] + 1)]
@@ -470,11 +463,7 @@ def find_next_most_uncertain_mention_unclustered(selector, model_labels, output_
         opt_score = mention_confidence_scores.max()
     # choose arbitrary unchosen, least-confident mention
     batch_and_mentions = ((mention_confidence_scores == opt_score) & ~queried_mentions_mask).nonzero()
-    # check if edge belongs to
-    try:
-        assert (len(batch_and_mentions) > 0)
-    except:
-        pdb.set_trace()
+    assert (len(batch_and_mentions) > 0)
     # return least confident mention and associated score
     return batch_and_mentions[0], opt_score
 
@@ -602,10 +591,7 @@ def find_next_most_uncertain_mention(selector, model_labels, output_dict, querie
                     # scores for mentions with antecedents (which are possibly clustered with other antecedents)
                     if ((verify_existing and (~queried_mentions_mask[b][clustered_mask]).sum() > 0) or
                         (not verify_existing and (~queried_mentions_mask[b][~clustered_mask]).sum() == 0)):
-                        try:
-                            assert len(clustered_mask.nonzero()) > 0
-                        except:
-                            pdb.set_trace()
+                        assert len(clustered_mask.nonzero()) > 0
                         # get rows of those in selected clusters, add scores
                         mention_confidence_scores[b][clustered_mask] = row_cluster_sum[clustered_mask][
                             torch.arange(0, len(clustered_mask.nonzero())), antecedent_clusters[clustered_mask]]
@@ -626,16 +612,8 @@ def find_next_most_uncertain_mention(selector, model_labels, output_dict, querie
     if selector == 'entropy' or selector == 'qbc':
         opt_score = mention_confidence_scores.max()
     # choose arbitrary unchosen, least-confident mention
-    try:
-        batch_and_mentions = ((mention_confidence_scores == opt_score) & ~queried_mentions_mask).nonzero()
-    except:
-        import pdb
-        pdb.set_trace()
-    # check if edge belongs to
-    try:
-        assert (len(batch_and_mentions) > 0)
-    except:
-        pdb.set_trace()
+    batch_and_mentions = ((mention_confidence_scores == opt_score) & ~queried_mentions_mask).nonzero()
+    assert (len(batch_and_mentions) > 0)
     # return least confident mention and associated score
     return batch_and_mentions[0], opt_score
 
@@ -690,9 +668,7 @@ def get_link_closures_edge(must_link, cannot_link, edge, should_link=False, must
         # update coreference_scores, predicted_antecedents, and/or coreference_scores_models (in case of qbc)
         coref_pairs = translate_to_indC(coref_pairs, output_dict, translation_reference,
                                         output_dict['coreference_scores'][0, :, 1:] != -float("inf"))
-        # if some proform doesn't exist in top_span (should not happen)
-        if (coref_pairs[:, 1] == -1).nonzero().size(0) > 0:
-            pdb.set_trace()
+        assert (coref_pairs[:, 1] == -1).nonzero().size(0) == 0
         # if some antecedent doesn't exist in top_span, just set to "no antecedent" by convention
         # this antecedent has 1 probability
         output_dict['coreference_scores'][coref_pairs[:, 0], coref_pairs[:, 1], :] = -float("inf")

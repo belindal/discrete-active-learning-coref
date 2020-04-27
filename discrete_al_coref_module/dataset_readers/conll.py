@@ -201,7 +201,6 @@ class HeldOutSetConllCorefReader(DatasetReader):
 
         # our must-link and cannot-link constraints, derived from user labels
         # using gold_clusters being None as an indicator of whether we're running training or not
-        # TODO: confirm ^^
         must_link: Optional[List[int]] = [] if gold_clusters is not None else None
         cannot_link: Optional[List[int]] = [] if gold_clusters is not None else None
 

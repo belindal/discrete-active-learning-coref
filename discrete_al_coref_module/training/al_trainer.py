@@ -1625,4 +1625,3 @@ class ALCorefTrainer(TrainerBase):
                    ensemble_optimizer=ensemble_optimizer,
                    ensemble_scheduler=ensemble_scheduler)
 
-
