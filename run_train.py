@@ -26,6 +26,7 @@ from allennlp.data.dataset_readers.dataset_reader import DatasetReader
 from allennlp.data.iterators.data_iterator import DataIterator
 from allennlp.models.archival import archive_model, CONFIG_NAME
 from allennlp.models.model import Model, _DEFAULT_WEIGHTS
+from allennlp.training.util import create_serialization_dir
 import tempfile
 from tempfile import TemporaryDirectory
 
@@ -35,6 +36,7 @@ from discrete_al_coref_module.training.al_trainer import ALCorefTrainer
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 torch.manual_seed(1)
+
 
 def datasets_from_params(params: Params) -> Dict[str, Iterable[Instance]]:
     """
@@ -78,74 +80,6 @@ def datasets_from_params(params: Params) -> Dict[str, Iterable[Instance]]:
         datasets["test"] = test_data
 
     return datasets
-
-
-def create_serialization_dir(
-        params: Params,
-        serialization_dir: str,
-        recover: bool,
-        force: bool) -> None:
-    """
-    This function creates the serialization directory if it doesn't exist.  If it already exists
-    and is non-empty, then it verifies that we're recovering from a training with an identical configuration.
-
-    Parameters
-    ----------
-    params: ``Params``
-        A parameter object specifying an AllenNLP Experiment.
-    serialization_dir: ``str``
-        The directory in which to save results and logs.
-    recover: ``bool``
-        If ``True``, we will try to recover from an existing serialization directory, and crash if
-        the directory doesn't exist, or doesn't match the configuration we're given.
-    """
-    if recover and force:
-        raise ConfigurationError("Illegal arguments: both force and recover are true.")
-
-    if os.path.exists(serialization_dir) and force:
-        shutil.rmtree(serialization_dir)
-
-    if os.path.exists(serialization_dir) and os.listdir(serialization_dir):
-        if not recover:
-            raise ConfigurationError(f"Serialization directory ({serialization_dir}) already exists and is "
-                                     f"not empty. Specify --recover to recover training from existing output.")
-
-        logger.info(f"Recovering from prior training at {serialization_dir}.")
-
-        recovered_config_file = os.path.join(serialization_dir, CONFIG_NAME)
-        if not os.path.exists(recovered_config_file):
-            raise ConfigurationError("The serialization directory already exists but doesn't "
-                                     "contain a config.json. You probably gave the wrong directory.")
-        else:
-            loaded_params = Params.from_file(recovered_config_file)
-
-            # Check whether any of the training configuration differs from the configuration we are
-            # resuming.  If so, warn the user that training may fail.
-            fail = False
-            flat_params = params.as_flat_dict()
-            flat_loaded = loaded_params.as_flat_dict()
-            for key in flat_params.keys() - flat_loaded.keys():
-                logger.error(f"Key '{key}' found in training configuration but not in the serialization "
-                             f"directory we're recovering from.")
-                fail = True
-            for key in flat_loaded.keys() - flat_params.keys():
-                logger.error(f"Key '{key}' found in the serialization directory we're recovering from "
-                             f"but not in the training config.")
-                fail = True
-            for key in flat_params.keys():
-                if flat_params.get(key, None) != flat_loaded.get(key, None):
-                    logger.error(f"Value for '{key}' in training configuration does not match that the value in "
-                                 f"the serialization directory we're recovering from: "
-                                 f"{flat_params[key]} != {flat_loaded[key]}")
-                    fail = True
-            if fail:
-                raise ConfigurationError("Training configuration does not match the configuration we're "
-                                         "recovering from.")
-    else:
-        if recover:
-            raise ConfigurationError(f"--recover specified but serialization_dir ({serialization_dir}) "
-                                     "does not exist.  There is nothing to recover from.")
-        os.makedirs(serialization_dir, exist_ok=True)
 
 
 def train_model(params: Params,
@@ -193,11 +127,6 @@ def train_model(params: Params,
     params.to_file(os.path.join(serialization_dir, CONFIG_NAME))
 
     all_datasets = datasets_from_params(params)
-    # spans_per_word = params['model']['spans_per_word']
-    # total_top_spans = 0
-    # for instance in all_datasets['held_out_train']:
-    #     total_top_spans += int(math.floor(spans_per_word * len(instance['text'])))
-    # print(total_top_spans / len(all_datasets['held_out_train']))
     datasets_for_vocab_creation = set(params.pop("datasets_for_vocab_creation", all_datasets))
 
     for dataset in datasets_for_vocab_creation:
@@ -306,71 +235,86 @@ def train_model(params: Params,
             metrics["test_" + key] = value
     return best_model, metrics, query_info
 
-# In practice you'd probably do this from the command line:
-#   $ allennlp train tutorials/tagger/experiment.jsonnet -s /tmp/serialization_dir
-#
-def main(cuda_device, testing=False, testing_vocab=False, experiments=None, pairwise=False, selector='entropy', num_ensemble_models=None,
-         no_clusters=False, args=None):
-    import_submodules('discrete_al_coref_module')
-    assert(selector == 'entropy' or selector == 'score' or selector == 'random' or selector == 'qbc')
-    if hasattr(args, 'labels_to_query'):
-        assert args.labels_to_query >= 0
-    use_percents=False
-    percent_list = [args.labels_to_query]
 
-    if experiments:
-        save_dir = experiments
+def main(args):
+    # validate inputs
+    num_ensemble_models = None
+    selector = args.selector
+    if selector[:3] == 'qbc':
+        assert (len(selector) > 3)
+        num_ensemble_models = int(selector[3:])
+        selector = 'qbc'
+    assert(selector == 'entropy' or selector == 'score' or selector == 'random' or selector == 'qbc')
+    num_labels_list = args.labels_to_query.split(",")
+
+    # import submodule
+    import_submodules('discrete_al_coref_module')
+
+    if getattr(args, 'experiments', None):
+        '''
+        Default (experimental) mode
+        '''
+        save_dir = args.experiments
         if not os.path.exists(save_dir):
             os.makedirs(save_dir, exist_ok=True)
-        os.system('cp training_config/coref.jsonnet ' + os.path.join(save_dir, 'coref.jsonnet'))
-        for x in percent_list:
-            print_str = "% of labels" if use_percents else " labels per doc"
-            print("Running with " + str(x) + print_str)
-            serialization_dir = os.path.join(save_dir, "checkpoint_" + str(x))
-            os.system('rm -rf ' + serialization_dir)
-            params = Params.from_file(os.path.join(save_dir, 'coref.jsonnet'))
-            params.params['trainer']['cuda_device'] = cuda_device
+
+        for x in num_labels_list:
+            x = int(x)
+            assert x >= 0
+            print("Running with {} labels per doc".format(x))
+            serialization_dir = os.path.join(save_dir, "checkpoint_{}".format(x))
+
+            # modify parameters according to passed-in arguments
+            params = Params.from_file("training_config/coref.jsonnet")
+            params.params['trainer']['cuda_device'] = args.cuda_device
             params.params['trainer']['active_learning']['save_al_queries'] = args.save_al_queries
-            params.params['trainer']['active_learning']['query_type'] = "pairwise" if pairwise else "discrete"
+            params.params['trainer']['active_learning']['query_type'] = "pairwise" if args.pairwise else "discrete"
             if selector:
                 params.params['trainer']['active_learning']['selector']['type'] = selector
-            params.params['trainer']['active_learning']['selector']['use_clusters'] = not no_clusters
-            params.params['trainer']['active_learning']['use_percent'] = use_percents
-            params.params['trainer']['active_learning']['num_labels'] = round(0.01 * x, 2) if use_percents else x
+            params.params['trainer']['active_learning']['selector']['use_clusters'] = not args.no_clusters
+            params.params['trainer']['active_learning']['num_labels'] = x
+
+            # overwrite config
+            json.dump(params.params, open(os.path.join(save_dir, 'coref_{}.jsonnet'.format(x))))
+
+            import pdb
+            pdb.set_trace()
+
+            # train model
             best_model, metrics, query_info = train_model(params, serialization_dir, selector, num_ensemble_models, recover=False)
-            dump_metrics(os.path.join(save_dir, str(x) + ".json"), metrics, log=True)
-            with open(os.path.join(save_dir, str(x) + "_query_info.json"), 'w', encoding='utf-8') as f:
+            dump_metrics(os.path.join(save_dir, "{}.json".format(x)), metrics, log=True)
+            with open(os.path.join(save_dir, "{}_query_info.json".format(x)), 'w', encoding='utf-8') as f:
                 json.dump(query_info, f)
     else:
+        '''
+        Test mode
+        '''
         params = Params.from_file('training_config/coref.jsonnet')
-        if use_percents:
-            params.params['trainer']['active_learning']['num_labels'] = 1
-        else:
-            params.params['trainer']['active_learning']['num_labels'] = 100
+        params.params['trainer']['active_learning']['num_labels'] = 20
         # restore data file
         saved_data_file = '../data/saved_data_' + str(selector) + '_' + str(num_ensemble_models) + '_' + str(params.params['trainer']['active_learning']['num_labels']) + '.th'
         if os.path.exists(saved_data_file):
             params['dataset_reader']['saved_data_file'] = saved_data_file
-        params.params['trainer']['active_learning']['use_percent'] = use_percents
         params.params['trainer']['active_learning']['save_al_queries'] = args.save_al_queries
-        if testing or testing_vocab:
+        if getattr(args, 'testing', None) or getattr(args, 'testing_vocab', None):
             params.params['trainer']['active_learning']['epoch_interval'] = 0
             del params.params['test_data_path']
-            '''
+            ''' Uncomment if necessary
             params.params['train_data_path'] = "/checkpoint/belindali/active_learning_coref/coref_ontonotes/dev.english.v4_gold_conll"
             params.params['dataset_reader']['fully_labelled_threshold'] = 100
             #'''
-            if testing:
+            if getattr(args, 'testing', None):
                 params.params['model']['text_field_embedder']['token_embedders']['tokens'] = {'type': 'embedding', 'embedding_dim': 300}
         with TemporaryDirectory() as serialization_dir:
             print("temp file path: " + str(serialization_dir))
-            params.params['trainer']['cuda_device'] = cuda_device
-            params.params['trainer']['active_learning']['query_type'] = "pairwise" if pairwise else "discrete"
+            params.params['trainer']['cuda_device'] = args.cuda_device
+            params.params['trainer']['active_learning']['query_type'] = "pairwise" if args.pairwise else "discrete"
             params.params['trainer']['active_learning']['selector']['type'] = selector if selector else "entropy"
-            params.params['trainer']['active_learning']['selector']['use_clusters'] = not no_clusters
+            params.params['trainer']['active_learning']['selector']['use_clusters'] = not args.no_clusters
             best_model, metrics, query_info = train_model(params, serialization_dir, selector, num_ensemble_models)
             with open(os.path.join(serialization_dir, "query_info.json"), 'w', encoding='utf-8') as f:
                 json.dump(query_info, f)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Run setting')
@@ -400,19 +344,14 @@ if __name__ == "__main__":
                         default='entropy',
                         help='what type of selector to use')
     parser.add_argument('--labels_to_query',
-                        type=int,
+                        type=str,
                         required=True,
-                        help='labels to query per doc (n >= 0)')
+                        help='labels to query per doc (n >= 0). Can also pass in a comment-separated list to run experiments one after the other.')
     parser.add_argument("--save_al_queries",
                         action='store_true',
                         required=False,
                         help='Whether or not to save AL queries (or just simulate them using user inputs)')
-
    
     args = parser.parse_args()
-    num_ensemble_models = None
-    if vars(args)['selector'][:3] == 'qbc':
-        assert (len(vars(args)['selector']) > 3)
-        num_ensemble_models = int(vars(args)['selector'][3:])
-        vars(args)['selector'] = 'qbc'
-    main(vars(args)['cuda_device'], vars(args)['testing'], vars(args)['testing_vocab'], vars(args)['experiments'], vars(args)['pairwise'], vars(args)['selector'], num_ensemble_models, vars(args)['no_clusters'], args)
+
+    main(args)
