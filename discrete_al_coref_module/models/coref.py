@@ -106,10 +106,6 @@ class ALCoreferenceResolver(CoreferenceResolver):
                 span_labels: torch.IntTensor = None,
                 metadata: List[Dict[str, Any]] = None,
                 get_scores: bool = False,
-                top_spans_info: Dict[str, torch.IntTensor] = None,
-                coref_scores_info: Dict[str, torch.IntTensor] = None,
-                return_mention_scores: bool = False,
-                return_coref_scores: bool = False,
                 **kwargs) -> Dict[str, torch.Tensor]:
         # pylint: disable=arguments-differ
         """
@@ -158,7 +154,7 @@ class ALCoreferenceResolver(CoreferenceResolver):
         ) = self.prune_top_spans(mention_scores, spans)
 
         # {'output_dict': output_dict, 'ant_mask': valid_antecedent_log_mask}
-        antecedent_scores_info = self.get_antecedent_scores(
+        antecedent_scores_info = self.get_coreference_scores(
             spans=spans,
             top_span_mention_scores=top_span_mention_scores,
             num_spans_to_keep=num_spans_to_keep,
@@ -176,34 +172,23 @@ class ALCoreferenceResolver(CoreferenceResolver):
         top_spans = output_dict['top_spans']
         valid_antecedent_indices = output_dict['antecedent_indices']
 
-        if not coref_scores_info:
-            if top_spans_info:
-                # for ensemble, ensemble_coref already implicitly computes top spans
-                span_mention_scores = top_spans_info['mention_scores']
-                top_span_mention_scores = top_spans_info['top_scores']
-                num_spans_to_keep = top_span_mention_scores.size(1)
-                top_span_indices = top_spans_info['span_indices']
-                flat_top_span_indices = top_spans_info['flat_top_indices']
-                top_span_mask = top_spans_info['top_mask']
-                span_embeddings = top_spans_info['span_embeddings']
-                top_span_embeddings = util.batched_index_select(span_embeddings, top_span_indices, flat_top_span_indices)
-                text_mask = top_spans_info['text_mask']
-        else:
-            top_span_indices = coref_scores_info['top_span_inds'][0]	
-            flat_top_span_indices = coref_scores_info['top_span_inds'][1]	
-            top_span_mask = coref_scores_info['top_span_mask']	
-            valid_antecedent_log_mask = coref_scores_info['valid_antecedent_log_mask']	
+        # if not coref_scores_info:
+        # else:
+        #     top_span_indices = coref_scores_info['top_span_inds'][0]	
+        #     flat_top_span_indices = coref_scores_info['top_span_inds'][1]	
+        #     top_span_mask = coref_scores_info['top_span_mask']	
+        #     valid_antecedent_log_mask = coref_scores_info['valid_antecedent_log_mask']	
             	
-            output_dict = coref_scores_info['output_dict']	
-            top_spans = output_dict['top_spans']	
-            valid_antecedent_indices = output_dict['antecedent_indices']	
-            num_spans_to_keep = top_spans.size(1)	
-            flat_valid_antecedent_indices = util.flatten_and_batch_shift_indices(valid_antecedent_indices,	
-                                                                                 num_spans_to_keep)	
-            coreference_scores = output_dict['coreference_scores']	
-            _, predicted_antecedents = coreference_scores.max(2)	
-            predicted_antecedents -= 1	
-            output_dict['predicted_antecedents'] = predicted_antecedents
+        #     output_dict = coref_scores_info['output_dict']	
+        #     top_spans = output_dict['top_spans']	
+        #     valid_antecedent_indices = output_dict['antecedent_indices']	
+        #     num_spans_to_keep = top_spans.size(1)	
+        #     flat_valid_antecedent_indices = util.flatten_and_batch_shift_indices(valid_antecedent_indices,	
+        #                                                                          num_spans_to_keep)	
+        #     coreference_scores = output_dict['coreference_scores']	
+        #     _, predicted_antecedents = coreference_scores.max(2)	
+        #     predicted_antecedents -= 1	
+        #     output_dict['predicted_antecedents'] = predicted_antecedents
 
         output_dict = self.score_spans_if_labels(
             output_dict=output_dict,
@@ -343,7 +328,7 @@ class ALCoreferenceResolver(CoreferenceResolver):
         )
 
 
-    def get_antecedent_scores(
+    def get_coreference_scores(
         self,
         spans,
         top_span_mention_scores,

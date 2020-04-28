@@ -50,8 +50,8 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
 PAIRWISE_Q_TIME = 15.961803738317756
-DISCRETE_Q_TIME = 15.573082474226803
-DISCRETE_PAIRWISE_RATIO = DISCRETE_Q_TIME / PAIRWISE_Q_TIME
+DISCRETE_Q_TIME_TOTAL = 15.573082474226803 + PAIRWISE_Q_TIME
+DISCRETE_PAIRWISE_RATIO = DISCRETE_Q_TIME_TOTAL / PAIRWISE_Q_TIME
 SAVED_DISCRETE_TIMES_FILE = '/private/home/belindali/al_for_coref_results/discrete/discrete_entropy/{}_query_info.json'
 
 
@@ -309,7 +309,7 @@ class ALCorefTrainer(TrainerBase):
         self._held_out_train_data = held_out_train_dataset
         self._discrete_query_time_info = None
         self._discrete_query_time_diff = 0  # our time - standard time
-        self._equal_time_flag = False  # TODO don't hardcode
+        self._equal_time_flag = True  # TODO don't hardcode
         if self._equal_time_flag:
             if os.path.exists(SAVED_DISCRETE_TIMES_FILE.format(active_learning['num_labels'])):
                 with open(SAVED_DISCRETE_TIMES_FILE.format(active_learning['num_labels'])) as f:
@@ -1054,7 +1054,7 @@ class ALCorefTrainer(TrainerBase):
                             if self._discrete_query_time_info is not None:
                                 # ONLY FOR 1 INSTANCE PER BATCH
                                 batch_query_info = self._discrete_query_time_info[batch['metadata'][0]["ID"]]
-                                self._discrete_query_time_diff -= batch_query_info['not coref'] * DISCRETE_Q_TIME + batch_query_info['coref'] * PAIRWISE_Q_TIME
+                                self._discrete_query_time_diff -= batch_query_info['not coref'] * DISCRETE_Q_TIME_TOTAL + batch_query_info['coref'] * PAIRWISE_Q_TIME
                                 assert batch_query_info['batch_size'] == 1
                                 num_to_query = min(total_possible_queries, int(math.ceil(
                                     batch_query_info['not coref'] * DISCRETE_PAIRWISE_RATIO + batch_query_info['coref']
@@ -1098,7 +1098,7 @@ class ALCorefTrainer(TrainerBase):
                                     self._discrete_query_time_diff += PAIRWISE_Q_TIME
                                     num_coreferent += 1
                                 else:
-                                    self._discrete_query_time_diff += DISCRETE_Q_TIME
+                                    self._discrete_query_time_diff += DISCRETE_Q_TIME_TOTAL
 
                                 # add mention to queried before (arbitrarily set it in predicted_antecedents and coreference_scores to no cluster, even if not truly
                                 # the case--the only thing that matters is that it has a value that it is 100% confident of)
@@ -1156,7 +1156,7 @@ class ALCorefTrainer(TrainerBase):
                             if self._discrete_query_time_info is not None:
                                 # ONLY FOR 1 INSTANCE PER BATCH
                                 batch_query_info = self._discrete_query_time_info[batch['metadata'][0]["ID"]]
-                                self._discrete_query_time_diff -= batch_query_info['not coref'] * DISCRETE_Q_TIME + batch_query_info['coref'] * PAIRWISE_Q_TIME
+                                self._discrete_query_time_diff -= batch_query_info['not coref'] * DISCRETE_Q_TIME_TOTAL + batch_query_info['coref'] * PAIRWISE_Q_TIME
                                 assert batch_query_info['batch_size'] == 1
                                 num_to_query = int(np.round(batch_query_info['not coref']
                                                             * DISCRETE_PAIRWISE_RATIO + batch_query_info['coref']))
@@ -1165,6 +1165,8 @@ class ALCorefTrainer(TrainerBase):
                             top_spans_model_labels = torch.gather(batch['span_labels'], 1, translation_reference)
                             num_queried = 0
                             while num_queried < num_to_query:
+                                if self._discrete_query_time_info is not None and self._discrete_query_time_diff >= 0:
+                                    break
                                 edge, edge_score = \
                                     al_util.find_next_most_uncertain_pairwise_edge(self._selector,
                                                                                     top_spans_model_labels,
