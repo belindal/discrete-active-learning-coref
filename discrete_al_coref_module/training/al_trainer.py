@@ -309,10 +309,10 @@ class ALCorefTrainer(TrainerBase):
         self._held_out_train_data = held_out_train_dataset
         self._discrete_query_time_info = None
         self._discrete_query_time_diff = 0  # our time - standard time
-        self._equal_time_flag = True  # TODO don't hardcode
+        self._equal_time_flag = active_learning.get('use_equal_annot_time', False)
         if self._equal_time_flag:
-            if os.path.exists(SAVED_DISCRETE_TIMES_FILE.format(active_learning['num_labels'])):
-                with open(SAVED_DISCRETE_TIMES_FILE.format(active_learning['num_labels'])) as f:
+            if os.path.exists(active_learning['equal_annot_time_file']):
+                with open(active_learning['equal_annot_time_file']) as f:
                     self._discrete_query_time_info = json.load(f)
         self._docid_to_query_time_info = {}
         self._validation_data = validation_dataset
@@ -1021,12 +1021,10 @@ class ALCorefTrainer(TrainerBase):
                                 # ASSUMES 1 INSTANCE/BATCH
                                 queried_mentions_mask[batch_inds, top_queried_mentions_spans[:,1]] = 1
                         else:  # query type is pairwise
-                            # TODO possibly correct in some way
                             all_queried_edges = (batch['span_labels'] != -1).nonzero()
                             queried_edges_mask = torch.zeros(output_dict['coreference_scores'].size(),
                                                                 dtype=torch.bool).cuda(self._cuda_devices[0])
                             if len(all_queried_edges) > 0:
-                                # TODO fix this is wrong
                                 top_queried_edges = al_util.translate_to_indA(all_queried_edges, output_dict,
                                                                                 batch['spans'],
                                                                                 translation_reference=translation_reference)
@@ -1036,7 +1034,6 @@ class ALCorefTrainer(TrainerBase):
                             queried_edges_mask |= output_dict['coreference_scores'] == -float('inf')
 
                         confirmed_clusters = batch['span_labels'].clone()
-                        # TODO: fix if batch['span_labels'] is not all -1
                         confirmed_non_coref_edges = torch.tensor([], dtype=torch.long).cuda(self._cuda_devices[0])
 
                         # Update span_labels with model-predicted clusters
@@ -1054,10 +1051,14 @@ class ALCorefTrainer(TrainerBase):
                             if self._discrete_query_time_info is not None:
                                 # ONLY FOR 1 INSTANCE PER BATCH
                                 batch_query_info = self._discrete_query_time_info[batch['metadata'][0]["ID"]]
-                                self._discrete_query_time_diff -= batch_query_info['not coref'] * DISCRETE_Q_TIME_TOTAL + batch_query_info['coref'] * PAIRWISE_Q_TIME
+                                num_not_coref = batch_query_info['num_queried'] - batch_query_info.get('coref', 0)
+                                self._discrete_query_time_diff -= (
+                                    num_not_coref * DISCRETE_Q_TIME_TOTAL + batch_query_info['num_queried'] * PAIRWISE_Q_TIME
+                                )
                                 assert batch_query_info['batch_size'] == 1
+                                # min(total_possible, # that can be queried if all answered positively)
                                 num_to_query = min(total_possible_queries, int(math.ceil(
-                                    batch_query_info['not coref'] * DISCRETE_PAIRWISE_RATIO + batch_query_info['coref']
+                                    num_not_coref * DISCRETE_PAIRWISE_RATIO + batch_query_info['coref']
                                 )))
                             else:
                                 num_to_query = min(self._active_learning_num_labels, total_possible_queries)
@@ -1149,17 +1150,22 @@ class ALCorefTrainer(TrainerBase):
                                 num_queried += 1
                             for i in range(batch_size):
                                 self._docid_to_query_time_info[batch['metadata'][i]["ID"]] = \
-                                    {"num_queried": num_queried, "coref": num_coreferent, "not coref":
+                                    {"num_queried": num_queried, "coref": num_coreferent, "not_coref":
                                         num_queried - num_coreferent, "batch_size": batch_size}
                         else:  # pairwise
                             total_possible_queries = len((~queried_edges_mask).nonzero())
                             if self._discrete_query_time_info is not None:
                                 # ONLY FOR 1 INSTANCE PER BATCH
                                 batch_query_info = self._discrete_query_time_info[batch['metadata'][0]["ID"]]
-                                self._discrete_query_time_diff -= batch_query_info['not coref'] * DISCRETE_Q_TIME_TOTAL + batch_query_info['coref'] * PAIRWISE_Q_TIME
+                                #BOOKMARK
+                                num_not_coref = batch_query_info['num_queried'] - batch_query_info.get('coref', 0)
+                                self._discrete_query_time_diff -= (
+                                    num_not_coref * DISCRETE_Q_TIME_TOTAL + batch_query_info['num_queried'] * PAIRWISE_Q_TIME
+                                )
                                 assert batch_query_info['batch_size'] == 1
-                                num_to_query = int(np.round(batch_query_info['not coref']
-                                                            * DISCRETE_PAIRWISE_RATIO + batch_query_info['coref']))
+                                num_to_query = int(np.round(
+                                    num_not_coref * DISCRETE_PAIRWISE_RATIO + batch_query_info['coref']
+                                ))
                             else:
                                 num_to_query = min(self._active_learning_num_labels, total_possible_queries)
                             top_spans_model_labels = torch.gather(batch['span_labels'], 1, translation_reference)

@@ -43,7 +43,6 @@ def datasets_from_params(params: Params) -> Dict[str, Iterable[Instance]]:
     Load all the datasets specified by the config.
     """
     fully_labelled_threshold = 3000 if 'fully_labelled_threshold' not in params['dataset_reader'] else params['dataset_reader']['fully_labelled_threshold']
-    saved_data_file = params['dataset_reader']['saved_data_file'] if 'saved_data_file' in params['dataset_reader'] else None
     dataset_reader = DatasetReader.from_params(params.pop("dataset_reader", None))
     validation_dataset_reader_params = params.pop("validation_dataset_reader", None)
 
@@ -60,8 +59,6 @@ def datasets_from_params(params: Params) -> Dict[str, Iterable[Instance]]:
     train_data = dataset_reader.read(train_data_path)
 
     num_saved_labels = fully_labelled_threshold
-    if saved_data_file is not None:
-        num_saved_labels = len(torch.load(saved_data_file))
     held_out_train_data = train_data[num_saved_labels:]     # after threshold
     train_data = train_data[:num_saved_labels]      # before threshold
 
@@ -245,7 +242,15 @@ def main(args):
         num_ensemble_models = int(selector[3:])
         selector = 'qbc'
     assert(selector == 'entropy' or selector == 'score' or selector == 'random' or selector == 'qbc')
-    num_labels_list = args.labels_to_query.split(",")
+    # 1 and only 1 specified
+    assert getattr(args, 'labels_to_query', None) or getattr(args, 'query_time_file', None)
+    assert not getattr(args, 'labels_to_query', None) or not getattr(args, 'query_time_file', None)
+
+    # parse inputs
+    if getattr(args, 'labels_to_query', None):
+        label_times_list = args.labels_to_query.split(",")
+    else:
+        label_times_list = args.query_time_file.split(":")
 
     # import submodule
     import_submodules('discrete_al_coref_module')
@@ -254,18 +259,27 @@ def main(args):
         '''
         Default (experimental) mode
         '''
+        # create save dir
         save_dir = args.experiments
         if not os.path.exists(save_dir):
             os.makedirs(save_dir, exist_ok=True)
 
-        for x in num_labels_list:
-            x = int(x)
-            assert x >= 0
-            print("Running with {} labels per doc".format(x))
-            serialization_dir = os.path.join(save_dir, "checkpoint_{}".format(x))
+        for x in label_times_list:
+            if getattr(args, 'labels_to_query', None):
+                x = int(x)
+                assert x >= 0
+                print("Running with {} labels per doc".format(x))
+                serialization_dir = os.path.join(save_dir, "checkpoint_{}".format(x))
+            else:
+                assert os.path.exists(x)
+                print("Running with equivalent annotation time to {}".format(x))
+                save_fn = x.replace('/', '%').replace('_query_info.json', '').replace(
+                    '.json', '').replace('.', '')
+                serialization_dir = os.path.join(save_dir, "checkpoint_{}".format(save_fn))
 
+            print("Saving in directory: {}".format(serialization_dir))
             if os.path.exists(serialization_dir):
-                print("Deleting existing directory: {}".format(serialization_dir))
+                print("Deleting existing directory found in same location.")
                 shutil.rmtree(serialization_dir)
 
             # modify parameters according to passed-in arguments
@@ -276,7 +290,11 @@ def main(args):
             if selector:
                 params.params['trainer']['active_learning']['selector']['type'] = selector
             params.params['trainer']['active_learning']['selector']['use_clusters'] = not args.no_clusters
-            params.params['trainer']['active_learning']['num_labels'] = x
+            if getattr(args, 'labels_to_query', None):
+                params.params['trainer']['active_learning']['num_labels'] = x
+            else:
+                params.params['trainer']['active_learning']['use_equal_annot_time'] = True
+                params.params['trainer']['active_learning']['equal_annot_time_file'] = x
 
             # train model
             best_model, metrics, query_info = train_model(params, serialization_dir, selector, num_ensemble_models, recover=False)
@@ -288,11 +306,11 @@ def main(args):
         Test mode
         '''
         params = Params.from_file('training_config/coref.jsonnet')
-        params.params['trainer']['active_learning']['num_labels'] = 20
-        # restore data file
-        saved_data_file = '../data/saved_data_' + str(selector) + '_' + str(num_ensemble_models) + '_' + str(params.params['trainer']['active_learning']['num_labels']) + '.th'
-        if os.path.exists(saved_data_file):
-            params['dataset_reader']['saved_data_file'] = saved_data_file
+        if getattr(args, 'labels_to_query', None):
+            params.params['trainer']['active_learning']['num_labels'] = label_times_list[0]
+        else:
+            params.params['trainer']['active_learning']['use_equal_annot_time'] = True
+            params.params['trainer']['active_learning']['equal_annot_time_file'] = label_times_list[0]
         params.params['trainer']['active_learning']['save_al_queries'] = args.save_al_queries
         if getattr(args, 'testing', None) or getattr(args, 'testing_vocab', None):
             params.params['trainer']['active_learning']['epoch_interval'] = 0
@@ -343,8 +361,12 @@ if __name__ == "__main__":
                         help='what type of selector to use')
     parser.add_argument('--labels_to_query',
                         type=str,
-                        required=True,
+                        required=False,
                         help='labels to query per doc (n >= 0). Can also pass in a comment-separated list to run experiments one after the other.')
+    parser.add_argument('--query_time_file',
+                        type=str,
+                        required=False,
+                        help='specify path to a \'*_query_info\' file here to run in the same time as that saved experiment')
     parser.add_argument("--save_al_queries",
                         action='store_true',
                         required=False,

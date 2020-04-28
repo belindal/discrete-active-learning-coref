@@ -265,8 +265,6 @@ def get_sorted_masked_edges(selector, coreference_mask, output_dict, all_spans, 
         edge_entropies = edge_entropies[mentions_to_query[:,0], mentions_to_query[:,1]]
         _, ind_max_edge_scores = edge_entropies.sort(descending=True)
         ind_max_edge_scores = ind_max_edge_scores.squeeze(0)
-    # TODO: only works for 1 instance/batch
-    # TODO: fix in case of negative edge (not coreferent)
     sorted_edges = translate_to_indA(masked_edge_inds[ind_max_edge_scores], output_dict, all_spans, translation_reference)
     return sorted_edges, edge_scores[ind_max_edge_scores]
 
@@ -392,7 +390,7 @@ def find_next_most_uncertain_pairwise_edge(selector, model_labels, output_dict, 
         edge_entropies = -(coref_edge_entropies + non_coref_edge_entropies)
         # avoid choosing 1st column
         edge_confidence_scores = edge_entropies[:, :, 1:]
-    elif selector == 'qbc':  # TODO qbc selector
+    elif selector == 'qbc':
         raise NotImplementedError("QBC unsupported for pairwise annotation")
 
     if selector == 'entropy' or selector == 'qbc':
@@ -576,7 +574,6 @@ def find_next_most_uncertain_mention(selector, model_labels, output_dict, querie
                     row_cluster_sum = row_cluster_sum.view(-1, num_clusters)
                 if selector == 'entropy':
                     if len(clustered_mask.nonzero()) > 0:
-                        # TODO VERIFY: for i, row in enumerate(row_cluster_sum): assert(len(coreference_probs[i][mention_pair_cluster_mask[i]]) == 0 or len(((row - model_output_mention_pair_clusters[i][mention_pair_cluster_mask[i]].bincount(coreference_probs[i][mention_pair_cluster_mask[i]], minlength=len(row))).abs() > 0.0001).nonzero()) == 0)
                         # add entropies of clusters
                         row_cluster_entropy = row_cluster_sum * row_cluster_sum.log()
                         row_cluster_entropy[row_cluster_entropy != row_cluster_entropy] = 0  # avoid adding nan
