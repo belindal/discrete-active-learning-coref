@@ -261,11 +261,17 @@ class HeldOutSetConllCorefReader(DatasetReader):
                 fields["user_labels"] = SequenceLabelField(user_labels, span_field)
 
         if doc_info is not None:
-            assert (fields["span_labels"].as_tensor(fields["span_labels"].get_padding_lengths()) != doc_info['span_labels']).nonzero().size(0) == 0
+            assert (
+                fields["span_labels"].as_tensor(fields["span_labels"].get_padding_lengths()) != doc_info['span_labels']
+            ).nonzero().size(0) == 0
             if 'must_link' in doc_info:
                 assert 'must_link' in fields
-                assert (fields["must_link"].as_tensor(fields["must_link"].get_padding_lengths()) != doc_info['must_link']).nonzero().size(0) == 0
-                assert (fields["cannot_link"].as_tensor(fields["cannot_link"].get_padding_lengths()) != doc_info['cannot_link']).nonzero().size(0) == 0
+                assert (
+                    fields["must_link"].as_tensor(fields["must_link"].get_padding_lengths()) != doc_info['must_link']
+                ).nonzero().size(0) == 0
+                assert (
+                    fields["cannot_link"].as_tensor(fields["cannot_link"].get_padding_lengths()) != doc_info['cannot_link']
+                ).nonzero().size(0) == 0
         return Instance(fields)
 
     @staticmethod

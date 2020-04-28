@@ -13,9 +13,6 @@ from allennlp.nn import util
 from discrete_al_coref_module.models.coref import ALCoreferenceResolver
 
 
-DEBUG=True
-
-
 @Model.register("coref-ensemble")
 class CorefEnsemble(Ensemble):
     def __init__(self, submodels: List[ALCoreferenceResolver]) -> None:
@@ -99,28 +96,6 @@ class CorefEnsemble(Ensemble):
             coreference_scores=avg_coref_scores,
             predicted_antecedents=ensemble_predicted_antecedents,
         )
-        # run other models so coref scores are at the same state
-        if DEBUG:
-            for i in range(1, num_models):
-                dict2 = self.submodels[i].score_spans_if_labels(
-                    output_dict=output_dict,
-                    span_labels=span_labels,
-                    metadata=metadata,
-                    top_span_indices=top_span_indices_ensemble,
-                    flat_top_span_indices=flat_top_span_indices_ensemble,
-                    top_span_mask=top_span_mask,
-                    top_spans=top_spans,
-                    valid_antecedent_indices=valid_antecedent_indices,
-                    valid_antecedent_log_mask=valid_antecedent_log_mask,
-                    coreference_scores=avg_coref_scores,
-                    predicted_antecedents=ensemble_predicted_antecedents,
-                )
-                assert dict2.keys() == output_dict.keys()
-                for key in output_dict:
-                    if isinstance(dict2[key], torch.Tensor):
-                        assert (dict2[key] == output_dict[key]).all()
-                    else:
-                        assert (dict2[key] == output_dict[key])
 
         self._mention_recall(output_dict['top_spans'], metadata)
         self._conll_coref_scores(output_dict['top_spans'], output_dict['antecedent_indices'],
