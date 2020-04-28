@@ -22,13 +22,14 @@ for i, fn in enumerate(files):
         closure_time_lst = json.loads(info_file.read())
         #closure_time_lst = list(closure_time_lst[1:len(closure_time_lst)-1].strip().split(", "))
         #closure_time_lst = [float(time) for time in closure_time_lst]
-        closure_times[inc] = closure_time_lst
+        closure_times[inc] = [t * 1000 for t in closure_time_lst]
     print(inc)
     print(closure_times[inc])
     plt.plot(closure_times[inc], label=inc)
 
 plt.xlabel("Number of existing annotations")
-plt.ylabel("Time (sec) to compute next closure")
+plt.ylabel("Time (ms) to compute next closure")
+
 plt.legend()
 plt.show()
 

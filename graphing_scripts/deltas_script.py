@@ -50,7 +50,7 @@ for selector_fn in discrete_dir:
                 os.path.join(RESULTS_DIR, selector_fn),
                 str(discrete_labels_per_doc) + "_deltas.json"
             )) as f:
-                deltas[time] = float(f.read().strip())
+                deltas[time] = float(f.read().strip()) * 100
 
     print(pair_or_not + " " + selector)
     print(deltas)
