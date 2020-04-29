@@ -13,7 +13,7 @@
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 # Active learning for coreference resolution using discrete annotation
-This is the corresponding code for the ACL 2020 paper, *Active Learning for Coreference Resolution using Discrete Selection*.
+This is the corresponding code for the ACL 2020 paper, [*Active Learning for Coreference Resolution using Discrete Selection*](https://arxiv.org/abs/2004.13671).
 
 ## Setup
 1. Install Anaconda here: https://conda.io/projects/conda/en/latest/user-guide/install/index.html
