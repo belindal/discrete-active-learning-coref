@@ -409,6 +409,13 @@ def find_next_most_uncertain_mention_unclustered(selector, model_labels, output_
     model_labels: batch x num_spans tensor detailing cluster ID of cluster each span belongs to, according to model edges
     and user corrections. IMPORTANT: indexes into TOP_SPANS, not all spans.
     '''
+    if selector == 'random':
+        # choose random one which hasn't been queried before
+        batch_and_mentions = (~queried_mentions_mask).nonzero()
+        batch_and_mention = batch_and_mentions[torch.randint(len(batch_and_mentions), (), dtype=torch.int,
+                                                             device=model_labels.device)]
+        return batch_and_mention, torch.rand(())
+        
     coref_scores_mask = output_dict['coreference_scores'] != -float("inf")
     mention_confidence_scores = torch.zeros(output_dict['top_spans'].size()[:2], dtype=torch.float,
                                             device=model_labels.device)
