@@ -12,49 +12,15 @@ from allennlp.data.instance import Instance
 from allennlp.data.tokenizers import Token
 from allennlp.data.token_indexers import SingleIdTokenIndexer, TokenIndexer
 from allennlp.data.dataset_readers.dataset_utils import Ontonotes, enumerate_spans
+from allennlp.data.dataset_readers.coreference_resolution.conll import canonicalize_clusters
 
 from discrete_al_coref_module.dataset_readers.pair_field import PairField
-
-import pdb
 
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
-def canonicalize_clusters(clusters: DefaultDict[int, List[Tuple[int, int]]]) -> List[List[Tuple[int, int]]]:
-    """
-    The CONLL 2012 data includes 2 annotatated spans which are identical,
-    but have different ids. This checks all clusters for spans which are
-    identical, and if it finds any, merges the clusters containing the
-    identical spans.
-    """
-    merged_clusters: List[Set[Tuple[int, int]]] = []
-    for cluster in clusters.values():
-        cluster_with_overlapping_mention = None
-        for mention in cluster:
-            # Look at clusters we have already processed to
-            # see if they contain a mention in the current
-            # cluster for comparison.
-            for cluster2 in merged_clusters:
-                if mention in cluster2:
-                    # first cluster in merged clusters
-                    # which contains this mention.
-                    cluster_with_overlapping_mention = cluster2
-                    break
-            # Already encountered overlap - no need to keep looking.
-            if cluster_with_overlapping_mention is not None:
-                break
-        if cluster_with_overlapping_mention is not None:
-            # Merge cluster we are currently processing into
-            # the cluster in the processed list.
-            cluster_with_overlapping_mention.update(cluster)
-        else:
-            merged_clusters.append(set(cluster))
-    return [list(c) for c in merged_clusters]
-
-
 @DatasetReader.register("al_coref")
 class HeldOutSetConllCorefReader(DatasetReader):
-    # TODO FIX COMMENTS
     """
     Reads a single CoNLL-formatted file. This is the same file format as used in the
     :class:`~allennlp.data.dataset_readers.semantic_role_labelling.SrlReader`, but is preprocessed
@@ -201,7 +167,6 @@ class HeldOutSetConllCorefReader(DatasetReader):
 
         # our must-link and cannot-link constraints, derived from user labels
         # using gold_clusters being None as an indicator of whether we're running training or not
-        # TODO: confirm ^^
         must_link: Optional[List[int]] = [] if gold_clusters is not None else None
         cannot_link: Optional[List[int]] = [] if gold_clusters is not None else None
 
@@ -263,17 +228,25 @@ class HeldOutSetConllCorefReader(DatasetReader):
             if user_labels is not None:
                 fields["user_labels"] = SequenceLabelField(user_labels, span_field)
 
+        # sanity checks
         if doc_info is not None:
-            assert (fields["span_labels"].as_tensor(fields["span_labels"].get_padding_lengths()) != doc_info['span_labels']).nonzero().size(0) == 0
+            assert (
+                fields["span_labels"].as_tensor(fields["span_labels"].get_padding_lengths()) != doc_info['span_labels']
+            ).nonzero().size(0) == 0
             if 'must_link' in doc_info:
                 assert 'must_link' in fields
-                assert (fields["must_link"].as_tensor(fields["must_link"].get_padding_lengths()) != doc_info['must_link']).nonzero().size(0) == 0
-                assert (fields["cannot_link"].as_tensor(fields["cannot_link"].get_padding_lengths()) != doc_info['cannot_link']).nonzero().size(0) == 0
+                assert (
+                    fields["must_link"].as_tensor(fields["must_link"].get_padding_lengths()) != doc_info['must_link']
+                ).nonzero().size(0) == 0
+                assert (
+                    fields["cannot_link"].as_tensor(fields["cannot_link"].get_padding_lengths()) != doc_info['cannot_link']
+                ).nonzero().size(0) == 0
+
         return Instance(fields)
 
-    @staticmethod
-    def _normalize_word(word):
-        if word == "/." or word == "/?":
-            return word[1:]
+    @staticmethod	
+    def _normalize_word(word):	
+        if word in ("/.", "/?"):	
+            return word[1:]	
         else:
             return word

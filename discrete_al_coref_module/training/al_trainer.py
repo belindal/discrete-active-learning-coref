@@ -50,8 +50,8 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 
 PAIRWISE_Q_TIME = 15.961803738317756
-DISCRETE_Q_TIME = 15.573082474226803
-DISCRETE_PAIRWISE_RATIO = DISCRETE_Q_TIME / PAIRWISE_Q_TIME
+DISCRETE_Q_TIME_TOTAL = 15.573082474226803 + PAIRWISE_Q_TIME
+DISCRETE_PAIRWISE_RATIO = DISCRETE_Q_TIME_TOTAL / PAIRWISE_Q_TIME
 SAVED_DISCRETE_TIMES_FILE = '/private/home/belindali/al_for_coref_results/discrete/discrete_entropy/{}_query_info.json'
 
 
@@ -309,10 +309,10 @@ class ALCorefTrainer(TrainerBase):
         self._held_out_train_data = held_out_train_dataset
         self._discrete_query_time_info = None
         self._discrete_query_time_diff = 0  # our time - standard time
-        self._equal_time_flag = False  # TODO don't hardcode
+        self._equal_time_flag = active_learning.get('use_equal_annot_time', False)
         if self._equal_time_flag:
-            if os.path.exists(SAVED_DISCRETE_TIMES_FILE.format(active_learning['num_labels'])):
-                with open(SAVED_DISCRETE_TIMES_FILE.format(active_learning['num_labels'])) as f:
+            if os.path.exists(active_learning['equal_annot_time_file']):
+                with open(active_learning['equal_annot_time_file']) as f:
                     self._discrete_query_time_info = json.load(f)
         self._docid_to_query_time_info = {}
         self._validation_data = validation_dataset
@@ -383,11 +383,7 @@ class ALCorefTrainer(TrainerBase):
         if active_learning:
             self._do_active_learning = True
             self._active_learning_epoch_interval = active_learning['epoch_interval']
-            self._use_percent_labels = active_learning['use_percent'] is not None and active_learning['use_percent']
-            if self._use_percent_labels:
-                self._active_learning_percent_labels = active_learning['num_labels']
-            else:
-                self._active_learning_num_labels = active_learning['num_labels']
+            self._active_learning_num_labels = active_learning['num_labels']
             self._save_al_queries = active_learning['save_al_queries']
             self._active_learning_patience = active_learning['patience']
             self._replace_with_next_pos_edge = active_learning['replace_with_next_pos_edge']
@@ -541,12 +537,7 @@ class ALCorefTrainer(TrainerBase):
                 torch.cuda.empty_cache()
                 loss.backward(retain_graph=True)
             except:
-                try:
-                    self._backprop(loss)
-                except:
-                    import os
-                    print("Suspend process " + str(os.getpid()) + "(ctrl-z)")
-                    print("Remember press enter to continue...")
+                self._backprop(loss)
 
             train_loss += loss.item()
 
@@ -1030,12 +1021,10 @@ class ALCorefTrainer(TrainerBase):
                                 # ASSUMES 1 INSTANCE/BATCH
                                 queried_mentions_mask[batch_inds, top_queried_mentions_spans[:,1]] = 1
                         else:  # query type is pairwise
-                            # TODO possibly correct in some way
                             all_queried_edges = (batch['span_labels'] != -1).nonzero()
                             queried_edges_mask = torch.zeros(output_dict['coreference_scores'].size(),
                                                                 dtype=torch.bool).cuda(self._cuda_devices[0])
                             if len(all_queried_edges) > 0:
-                                # TODO fix this is wrong
                                 top_queried_edges = al_util.translate_to_indA(all_queried_edges, output_dict,
                                                                                 batch['spans'],
                                                                                 translation_reference=translation_reference)
@@ -1045,7 +1034,6 @@ class ALCorefTrainer(TrainerBase):
                             queried_edges_mask |= output_dict['coreference_scores'] == -float('inf')
 
                         confirmed_clusters = batch['span_labels'].clone()
-                        # TODO: fix if batch['span_labels'] is not all -1
                         confirmed_non_coref_edges = torch.tensor([], dtype=torch.long).cuda(self._cuda_devices[0])
 
                         # Update span_labels with model-predicted clusters
@@ -1060,16 +1048,17 @@ class ALCorefTrainer(TrainerBase):
 
                         if self._query_type == 'discrete':
                             total_possible_queries = len(output_dict['top_spans'][0])
-                            if self._use_percent_labels:
-                                # upper bound is asking question about every span
-                                num_to_query = int(self._active_learning_percent_labels * total_possible_queries)
-                            elif self._discrete_query_time_info is not None:
+                            if self._discrete_query_time_info is not None:
                                 # ONLY FOR 1 INSTANCE PER BATCH
                                 batch_query_info = self._discrete_query_time_info[batch['metadata'][0]["ID"]]
-                                self._discrete_query_time_diff -= batch_query_info['not coref'] * DISCRETE_Q_TIME + batch_query_info['coref'] * PAIRWISE_Q_TIME
+                                num_not_coref = batch_query_info['num_queried'] - batch_query_info.get('coref', 0)
+                                self._discrete_query_time_diff -= (
+                                    num_not_coref * DISCRETE_Q_TIME_TOTAL + batch_query_info['num_queried'] * PAIRWISE_Q_TIME
+                                )
                                 assert batch_query_info['batch_size'] == 1
+                                # min(total_possible, # that can be queried if all answered positively)
                                 num_to_query = min(total_possible_queries, int(math.ceil(
-                                    batch_query_info['not coref'] * DISCRETE_PAIRWISE_RATIO + batch_query_info['coref']
+                                    num_not_coref * DISCRETE_PAIRWISE_RATIO + batch_query_info['coref']
                                 )))
                             else:
                                 num_to_query = min(self._active_learning_num_labels, total_possible_queries)
@@ -1091,9 +1080,9 @@ class ALCorefTrainer(TrainerBase):
                                 if self._selector_clusters:
                                     mention, mention_score = \
                                         al_util.find_next_most_uncertain_mention(self._selector,
-                                                                                    top_spans_model_labels,
-                                                                                    output_dict, queried_mentions_mask,
-                                                                                    verify_existing=verify_existing)
+                                                                                top_spans_model_labels,
+                                                                                output_dict, queried_mentions_mask,
+                                                                                verify_existing=verify_existing)
                                 else:
                                     mention, mention_score = \
                                         al_util.find_next_most_uncertain_mention_unclustered(self._selector,
@@ -1110,7 +1099,7 @@ class ALCorefTrainer(TrainerBase):
                                     self._discrete_query_time_diff += PAIRWISE_Q_TIME
                                     num_coreferent += 1
                                 else:
-                                    self._discrete_query_time_diff += DISCRETE_Q_TIME
+                                    self._discrete_query_time_diff += DISCRETE_Q_TIME_TOTAL
 
                                 # add mention to queried before (arbitrarily set it in predicted_antecedents and coreference_scores to no cluster, even if not truly
                                 # the case--the only thing that matters is that it has a value that it is 100% confident of)
@@ -1161,25 +1150,29 @@ class ALCorefTrainer(TrainerBase):
                                 num_queried += 1
                             for i in range(batch_size):
                                 self._docid_to_query_time_info[batch['metadata'][i]["ID"]] = \
-                                    {"num_queried": num_queried, "coref": num_coreferent, "not coref":
+                                    {"num_queried": num_queried, "coref": num_coreferent, "not_coref":
                                         num_queried - num_coreferent, "batch_size": batch_size}
                         else:  # pairwise
                             total_possible_queries = len((~queried_edges_mask).nonzero())
-                            if self._use_percent_labels:
-                                # upper bound is asking question about every span
-                                num_to_query = int(self._active_learning_percent_labels * total_possible_queries)
-                            elif self._discrete_query_time_info is not None:
+                            if self._discrete_query_time_info is not None:
                                 # ONLY FOR 1 INSTANCE PER BATCH
                                 batch_query_info = self._discrete_query_time_info[batch['metadata'][0]["ID"]]
-                                self._discrete_query_time_diff -= batch_query_info['not coref'] * DISCRETE_Q_TIME + batch_query_info['coref'] * PAIRWISE_Q_TIME
+                                #BOOKMARK
+                                num_not_coref = batch_query_info['num_queried'] - batch_query_info.get('coref', 0)
+                                self._discrete_query_time_diff -= (
+                                    num_not_coref * DISCRETE_Q_TIME_TOTAL + batch_query_info['num_queried'] * PAIRWISE_Q_TIME
+                                )
                                 assert batch_query_info['batch_size'] == 1
-                                num_to_query = int(np.round(batch_query_info['not coref']
-                                                            * DISCRETE_PAIRWISE_RATIO + batch_query_info['coref']))
+                                num_to_query = int(np.round(
+                                    num_not_coref * DISCRETE_PAIRWISE_RATIO + batch_query_info['coref']
+                                ))
                             else:
                                 num_to_query = min(self._active_learning_num_labels, total_possible_queries)
                             top_spans_model_labels = torch.gather(batch['span_labels'], 1, translation_reference)
                             num_queried = 0
                             while num_queried < num_to_query:
+                                if self._discrete_query_time_info is not None and self._discrete_query_time_diff >= 0:
+                                    break
                                 edge, edge_score = \
                                     al_util.find_next_most_uncertain_pairwise_edge(self._selector,
                                                                                     top_spans_model_labels,
@@ -1624,5 +1617,4 @@ class ALCorefTrainer(TrainerBase):
                    ensemble_model=ensemble_model,
                    ensemble_optimizer=ensemble_optimizer,
                    ensemble_scheduler=ensemble_scheduler)
-
 

@@ -27,8 +27,9 @@ class Pruner(torch.nn.Module):
                 mask: torch.LongTensor,
                 num_items_to_keep: int,
                 get_scores: bool = False,
-                scores: torch.FloatTensor = None) -> Tuple[torch.FloatTensor, torch.LongTensor,
-                                                           torch.LongTensor, torch.FloatTensor]:
+                scores: torch.FloatTensor = None,
+                **kwargs) -> Tuple[torch.FloatTensor, torch.LongTensor,
+                                   torch.LongTensor, torch.FloatTensor]:
         """
         Extracts the top-k scoring items with respect to the scorer. We additionally return
         the indices of the top-k in their original order, not ordered by score, so that downstream
