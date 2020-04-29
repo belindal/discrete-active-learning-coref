@@ -80,5 +80,13 @@ Alternatively, you may check out [the demo we have set up here](https://belindal
 ## References
 To cite our paper or code, please cite:
 ```
-TODO
+@InProceedings{li2020active,
+    title={Active Learning for Coreference Resolution using Discrete Annotation},
+    author={Belinda Li and Gabriel Stanovsky and Luke Zettlemoyer},
+    year={2020},
+    eprint={2004.13671},
+    archivePrefix={arXiv},
+    primaryClass={cs.CL}
+    publisher = {Association for Computational Linguistics}
+}
 ```
