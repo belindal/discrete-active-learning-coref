@@ -1050,14 +1050,15 @@ class ALCorefTrainer(TrainerBase):
                             if self._discrete_query_time_info is not None:
                                 # ONLY FOR 1 INSTANCE PER BATCH
                                 batch_query_info = self._discrete_query_time_info[batch['metadata'][0]["ID"]]
-                                num_not_coref = batch_query_info['num_queried'] - batch_query_info.get('coref', 0)
+                                num_not_coref = batch_query_info.get('not_coref', 0)
+                                num_coref = batch_query_info['num_queried'] - num_not_coref
                                 self._discrete_query_time_diff -= (
-                                    num_not_coref * DISCRETE_Q_TIME_TOTAL + batch_query_info.get('coref', 0) * PAIRWISE_Q_TIME
+                                    num_not_coref * DISCRETE_Q_TIME_TOTAL + num_coref * PAIRWISE_Q_TIME
                                 )
                                 assert batch_query_info['batch_size'] == 1
                                 # min(total_possible, # that can be queried if all answered positively)
                                 num_to_query = min(total_possible_queries, int(math.ceil(
-                                    num_not_coref * DISCRETE_PAIRWISE_RATIO + batch_query_info.get('coref', 0)
+                                    num_not_coref * DISCRETE_PAIRWISE_RATIO + num_coref
                                 )))
                             else:
                                 num_to_query = min(self._active_learning_num_labels, total_possible_queries)
@@ -1156,14 +1157,14 @@ class ALCorefTrainer(TrainerBase):
                             if self._discrete_query_time_info is not None:
                                 # ONLY FOR 1 INSTANCE PER BATCH
                                 batch_query_info = self._discrete_query_time_info[batch['metadata'][0]["ID"]]
-                                #BOOKMARK
-                                num_not_coref = batch_query_info['num_queried'] - batch_query_info.get('coref', 0)
+                                num_not_coref = batch_query_info.get('not_coref', 0)
+                                num_coref = batch_query_info['num_queried'] - num_not_coref
                                 self._discrete_query_time_diff -= (
-                                    num_not_coref * DISCRETE_Q_TIME_TOTAL + batch_query_info.get('coref', 0) * PAIRWISE_Q_TIME
+                                    num_not_coref * DISCRETE_Q_TIME_TOTAL + num_coref * PAIRWISE_Q_TIME
                                 )
                                 assert batch_query_info['batch_size'] == 1
                                 num_to_query = int(np.round(
-                                    num_not_coref * DISCRETE_PAIRWISE_RATIO + batch_query_info.get('coref', 0)
+                                    num_not_coref * DISCRETE_PAIRWISE_RATIO + num_coref
                                 ))
                             else:
                                 num_to_query = min(self._active_learning_num_labels, total_possible_queries)
