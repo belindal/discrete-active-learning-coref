@@ -52,7 +52,6 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 PAIRWISE_Q_TIME = 15.961803738317756
 DISCRETE_Q_TIME_TOTAL = 15.573082474226803 + PAIRWISE_Q_TIME
 DISCRETE_PAIRWISE_RATIO = DISCRETE_Q_TIME_TOTAL / PAIRWISE_Q_TIME
-SAVED_DISCRETE_TIMES_FILE = '/private/home/belindali/al_for_coref_results/discrete/discrete_entropy/{}_query_info.json'
 
 
 def is_sparse(tensor):
@@ -1053,7 +1052,7 @@ class ALCorefTrainer(TrainerBase):
                                 batch_query_info = self._discrete_query_time_info[batch['metadata'][0]["ID"]]
                                 num_not_coref = batch_query_info['num_queried'] - batch_query_info.get('coref', 0)
                                 self._discrete_query_time_diff -= (
-                                    num_not_coref * DISCRETE_Q_TIME_TOTAL + batch_query_info['num_queried'] * PAIRWISE_Q_TIME
+                                    num_not_coref * DISCRETE_Q_TIME_TOTAL + batch_query_info.get('coref', 0) * PAIRWISE_Q_TIME
                                 )
                                 assert batch_query_info['batch_size'] == 1
                                 # min(total_possible, # that can be queried if all answered positively)
@@ -1160,11 +1159,11 @@ class ALCorefTrainer(TrainerBase):
                                 #BOOKMARK
                                 num_not_coref = batch_query_info['num_queried'] - batch_query_info.get('coref', 0)
                                 self._discrete_query_time_diff -= (
-                                    num_not_coref * DISCRETE_Q_TIME_TOTAL + batch_query_info['num_queried'] * PAIRWISE_Q_TIME
+                                    num_not_coref * DISCRETE_Q_TIME_TOTAL + batch_query_info.get('coref', 0) * PAIRWISE_Q_TIME
                                 )
                                 assert batch_query_info['batch_size'] == 1
                                 num_to_query = int(np.round(
-                                    num_not_coref * DISCRETE_PAIRWISE_RATIO + batch_query_info['coref']
+                                    num_not_coref * DISCRETE_PAIRWISE_RATIO + batch_query_info.get('coref', 0)
                                 ))
                             else:
                                 num_to_query = min(self._active_learning_num_labels, total_possible_queries)
