@@ -55,7 +55,7 @@ Also, you may set the `--save_al_queries` flag, which will save up to 10K querie
 
 
 ### Launching Annotation Interface for Timing Experiments
-**TODO insert interface screenshot here**
+![Annotation Interface Screenshot](interface_screenshot.png)
 To launch our discrete annotation interface and/or run your own timing experiments:
 1. `cd timing_experiments`
 2. Launch the server on an open port (i.e. 8080): `python server.py -p {port}`
