@@ -86,7 +86,7 @@ If you found this useful, please cite:
     year={2020},
     eprint={2004.13671},
     archivePrefix={arXiv},
-    primaryClass={cs.CL}
+    primaryClass={cs.CL},
     publisher = {Association for Computational Linguistics}
 }
 ```
