@@ -18,6 +18,7 @@ import matplotlib.ticker as ticker
 from allennlp.models.coreference_resolution.coref import ConllCorefScores
 import spacy
 from spacy.tokenizer import Tokenizer
+from scipy.interpolate import splrep, splev
 
 plt.rcParams.update({'font.size': 14})
 plt.rc('xtick', labelsize=12)
@@ -36,9 +37,7 @@ flatten = lambda l: [item for sublist in l for item in sublist]
 f1 = lambda p, r: ((2*p*r) / (p + r)) if (p + r) else 0
 pr = lambda intr, pred: 100 * (intr / pred) if pred else 100
 rc = lambda intr, gold: 100 * (intr / gold) if gold else 100
-
-# conersions from (annotations / doc) to (min / doc)
-TIME_CONVERSIONS = {0: 0.0, 200: 71.91751439779348, 100: 41.96964765646017, 80: 34.27887468868257, 20: 9.38844897854418}
+NUM_OF_DOCS = 2102
 
 def get_entities(doc, clusters):
     """
@@ -150,7 +149,7 @@ def get_stats(inp_fn):
     return ret_dict
 
 
-def plot_stats(model_dicts, out_fn, x_title, y_title, *keys):
+def plot_stats(model_dicts, out_fn, x_title, top_x_title, y_title, smooth, x_min, x_max, *keys):
     """
     Plot a given stat across given models.
     """
@@ -173,19 +172,25 @@ def plot_stats(model_dicts, out_fn, x_title, y_title, *keys):
     fig, ax = plt.subplots()
     for model_name, model_data in plot_data.items():
         xs, ys = model_data
-
-        # Convert to min / doc
-        xs = [TIME_CONVERSIONS[x] for x in xs]
+        filtered_xs, filtered_ys = zip(*[(x, y) for x, y in zip(xs, ys)
+                                         if (x >= x_min) and (x <= x_max)])
+        ax.scatter(filtered_xs, filtered_ys)
+        if smooth:
+            spl = splrep(xs, ys)
+            x_new = np.linspace(x_min, x_max, 300)
+            y_new = splev(x_new, spl)
+            xs = x_new
+            ys = y_new
 
         ax.plot(xs, ys, label = model_name)
-        ax.scatter(xs, ys)
 
     # Fix plot formatting
-    s, e = ax.get_ylim()
-    # ax.yaxis.set_ticks(np.arange(s, e + 1, 1))
-    # ax.yaxis.set_major_formatter(ticker.FormatStrFormatter('%0.0f'))
+    logging.info(f"Writing figures to file: {out_fn}")
     ax.set_xlabel(x_title)
     ax.set_ylabel(y_title)
+    secax = ax.secondary_xaxis('top', functions=(lambda t: (t * NUM_OF_DOCS) / 60,
+                                                 lambda t: (t * 60) / NUM_OF_DOCS))
+    secax.set_xlabel(top_x_title)
     fig.legend(loc = 'lower right', bbox_to_anchor=(0.9, 0.1))
     fig.savefig(out_fn)
 
@@ -213,7 +218,7 @@ def get_avg_f1(ccs):
     for scorer in scorers:
         f1_scores.append(scorer.get_f1())
 
-    avg_f1 = np.average(f1_scores)
+    avg_f1 = 100 * np.average(f1_scores)
 
     return avg_f1
 
@@ -236,24 +241,32 @@ if __name__ == "__main__":
     for model_dir in tqdm(inp_fns):
         logging.info(f"Analyzing {model_dir}")
         fns = glob(str(model_dir / "predictions_*.json"))
+
+        # conersions from (annotations / doc) to (min / doc)
+        conversions_dict = json.load(open(model_dir / "CONVERSIONS.json"))
+
         for fn in fns:
             logging.debug(f"{fn}")
-            x = int(fn.split("_")[-1].split(".")[0])
-            model_dicts[model_dir][x] = get_stats(fn)
+            x = fn.split("_")[-1].split(".")[0]
+            model_dicts[model_dir][conversions_dict[x]] = get_stats(fn)
 
     plot_stats(model_dicts,
                out_fn / "mention_macro.png",
-               "Annotation time [mins / doc]", "Mention detection [macro f1]",
+               "Annotation time (mins / doc)", "Total annotation time (hrs)", "Mention detection (macro f1)",
+               False, 0, 70,
                "ent_macro", "f1")
 
     plot_stats(model_dicts,
                out_fn / "mention_micro.png",
-               "Annotation time [mins / doc]", "Mention detection [micro f1]",
+               "Annotation time (mins / doc)", "Total annotation time (hrs)",
+               "Mention detection (micro f1)",
+               False, 0, 70,
                "ent_micro", "f1")
 
     plot_stats(model_dicts,
                out_fn / "pronoun_avg_f1.png",
-               "Annotation time [mins / doc]", "Pronoun clusters [avg f1]",
+               "Annotation time (mins / doc)", "Total annotation time (hrs)", "Pronoun clusters (avg f1)",
+               False, 0, 70,
                "pronoun_avg_f1")
 
 

@@ -1,3 +1,17 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Active learning for coreference resolution using discrete annotation](#active-learning-for-coreference-resolution-using-discrete-annotation)
+  - [Setup](#setup)
+  - [Data](#data)
+  - [Usage](#usage)
+    - [Simulating Training with Active Learning](#simulating-training-with-active-learning)
+    - [Launching Annotation Interface for Timing Experiments](#launching-annotation-interface-for-timing-experiments)
+  - [References](#references)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Active learning for coreference resolution using discrete annotation
 This is the corresponding code for the ACL 2020 paper, *Active Learning for Coreference Resolution using Discrete Selection*.
 
@@ -78,7 +92,15 @@ Alternatively, you may check out [the demo we have set up here](https://belindal
 
 
 ## References
-To cite our paper or code, please cite:
+If you found this useful, please cite:
 ```
-TODO
+@InProceedings{li2020active,
+    title={Active Learning for Coreference Resolution using Discrete Annotation},
+    author={Belinda Li and Gabriel Stanovsky and Luke Zettlemoyer},
+    year={2020},
+    eprint={2004.13671},
+    archivePrefix={arXiv},
+    primaryClass={cs.CL},
+    publisher = {Association for Computational Linguistics}
+}
 ```
