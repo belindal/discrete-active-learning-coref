@@ -1,3 +1,17 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+**Table of Contents**  *generated with [DocToc](https://github.com/thlorenz/doctoc)*
+
+- [Active learning for coreference resolution using discrete annotation](#active-learning-for-coreference-resolution-using-discrete-annotation)
+  - [Setup](#setup)
+  - [Data](#data)
+  - [Usage](#usage)
+    - [Simulating Training with Active Learning](#simulating-training-with-active-learning)
+    - [Launching Annotation Interface for Timing Experiments](#launching-annotation-interface-for-timing-experiments)
+  - [References](#references)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Active learning for coreference resolution using discrete annotation
 This is the corresponding code for the ACL 2020 paper, *Active Learning for Coreference Resolution using Discrete Selection*.
 
