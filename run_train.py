@@ -269,13 +269,13 @@ def main(args):
                 x = int(x)
                 assert x >= 0
                 print("Running with {} labels per doc".format(x))
-                serialization_dir = os.path.join(save_dir, "checkpoint_{}".format(x))
+                save_fn = x
             else:
                 assert os.path.exists(x)
                 print("Running with equivalent annotation time to {}".format(x))
                 save_fn = x.replace('/', '%').replace('_query_info.json', '').replace(
                     '.json', '').replace('.', '')
-                serialization_dir = os.path.join(save_dir, "checkpoint_{}".format(save_fn))
+            serialization_dir = os.path.join(save_dir, "checkpoint_{}".format(save_fn))
 
             print("Saving in directory: {}".format(serialization_dir))
             if os.path.exists(serialization_dir):
@@ -298,8 +298,8 @@ def main(args):
 
             # train model
             best_model, metrics, query_info = train_model(params, serialization_dir, selector, num_ensemble_models, recover=False)
-            dump_metrics(os.path.join(save_dir, "{}.json".format(x)), metrics, log=True)
-            with open(os.path.join(save_dir, "{}_query_info.json".format(x)), 'w', encoding='utf-8') as f:
+            dump_metrics(os.path.join(save_dir, "{}.json".format(save_fn)), metrics, log=True)
+            with open(os.path.join(save_dir, "{}_query_info.json".format(save_fn)), 'w', encoding='utf-8') as f:
                 json.dump(query_info, f)
     else:
         '''
