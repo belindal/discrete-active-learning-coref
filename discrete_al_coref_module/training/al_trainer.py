@@ -1057,7 +1057,7 @@ class ALCorefTrainer(TrainerBase):
                                 assert batch_query_info['batch_size'] == 1
                                 # min(total_possible, # that can be queried if all answered positively)
                                 num_to_query = min(total_possible_queries, int(math.ceil(
-                                    num_not_coref * DISCRETE_PAIRWISE_RATIO + batch_query_info['coref']
+                                    num_not_coref * DISCRETE_PAIRWISE_RATIO + batch_query_info.get('coref', 0)
                                 )))
                             else:
                                 num_to_query = min(self._active_learning_num_labels, total_possible_queries)
