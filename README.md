@@ -78,7 +78,7 @@ Alternatively, you may check out [the demo we have set up here](https://belindal
 
 
 ## References
-To cite our paper or code, please cite:
+If you found this useful, please cite:
 ```
 @InProceedings{li2020active,
     title={Active Learning for Coreference Resolution using Discrete Annotation},
