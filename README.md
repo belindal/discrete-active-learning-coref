@@ -96,7 +96,7 @@ If you found this useful, please cite:
 ```
 @InProceedings{li2020active,
     title={Active Learning for Coreference Resolution using Discrete Annotation},
-    author={Belinda Li and Gabriel Stanovsky and Luke Zettlemoyer},
+    author={Belinda Z. Li and Gabriel Stanovsky and Luke Zettlemoyer},
     year={2020},
     eprint={2004.13671},
     archivePrefix={arXiv},
