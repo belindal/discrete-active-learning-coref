@@ -31,7 +31,7 @@ We use data from the English CoNLL-2012 coreference dataset, which can be obtain
 ## Usage
 ### Simulating Training with Active Learning
 To simulate active learning with discrete annotation, run
-```
+```console
 python run_train.py {index of CUDA device to run on (-1 for CPU)} \
     -e {save_dir} \
     -s {entropy/qbc{num_submodels}/score/random} \
@@ -41,7 +41,7 @@ python run_train.py {index of CUDA device to run on (-1 for CPU)} \
 
 To simulate active learning using pairwise entropy, score, or random selection
 (Note: pairwise annotation does not yet support query-by-committee)
-```
+```console
 python run_train.py {index of CUDA device to run on (-1 for CPU)} \
     -p \
     -e {save_dir} \
@@ -51,7 +51,7 @@ python run_train.py {index of CUDA device to run on (-1 for CPU)} \
 ```
 
 To simulate active learning with **unclustered** selectors
-```
+```console
 python run_train.py {index of CUDA device to run on (-1 for CPU)} \
     -nc \
     [-p] \
@@ -93,7 +93,7 @@ Alternatively, you may check out [the demo we have set up here](https://belindal
 
 ## References
 If you found this useful, please cite:
-```
+```bibtex
 @InProceedings{li2020active,
     title={Active Learning for Coreference Resolution using Discrete Annotation},
     author={Belinda Z. Li and Gabriel Stanovsky and Luke Zettlemoyer},
