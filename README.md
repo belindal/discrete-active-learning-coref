@@ -38,6 +38,7 @@ python run_train.py {index of CUDA device to run on (-1 for CPU)} \
     --labels_to_query {num_labels_per_doc} \
     [--save_al_queries]
 ``` 
+To start with, you can set `num_labels_per_doc` to 20. We were able to get `57.08` valid F1 with this setting. In the paper, we reported results for labels between 0 and 200 (corresponding to 0 to ~65 minutes per document of annotation time).
 
 To simulate active learning using pairwise entropy, score, or random selection
 (Note: pairwise annotation does not yet support query-by-committee)
