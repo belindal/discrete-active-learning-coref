@@ -44,7 +44,7 @@ parsimonious==0.8.1
 plac==0.9.6
 pluggy==0.13.1
 preshed==2.0.1
-protobuf==3.11.3
+protobuf==3.18.3
 py==1.8.1
 Pygments==2.6.1
 pyparsing==2.4.7
